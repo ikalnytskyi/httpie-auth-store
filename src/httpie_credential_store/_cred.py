@@ -23,7 +23,10 @@ class CredentialStore(object):
                     continue
                 return key["auth"]
 
-        raise LookupError("No keys found for a given URL: %s" % url)
+        message = "No credentials found for a given URL: '%s'" % url
+        if key_id:
+            message += " (id='%s')" % key_id
+        raise LookupError(message)
 
 
 def get_credential_store(name, directory=httpie.config.DEFAULT_CONFIG_DIR):
