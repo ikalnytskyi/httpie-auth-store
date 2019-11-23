@@ -8,4 +8,10 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    steps: []
+    steps:
+      - name: Publish to PyPI
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          pip install poetry
+          poetry run poetry publish
