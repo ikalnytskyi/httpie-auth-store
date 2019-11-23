@@ -176,6 +176,41 @@ def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
+def test_creds_auth_basic_keychain(
+    httpie_run, set_credentials, creds_auth_type, tmpdir, httpie_stderr
+):
+    """The plugin retrieves secrets from keychain for HTTP basic auth."""
+
+    secrettxt = tmpdir.join("secret.txt")
+    secrettxt.write_text("p@ss", encoding="UTF-8")
+
+    set_credentials(
+        [
+            {
+                "url": "http://example.com",
+                "auth": [
+                    {
+                        "type": "basic",
+                        "username": "user",
+                        "password": {
+                            "keychain": "shell",
+                            "command": f"cat {secrettxt.strpath}",
+                        },
+                    }
+                ],
+            }
+        ]
+    )
+    httpie_run(["-A", creds_auth_type, "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "Basic dXNlcjpwQHNz"
+
+
+@responses.activate
 def test_creds_auth_digest(httpie_run, set_credentials, creds_auth_type):
     """The plugin works for HTTP digest auth."""
 
@@ -285,6 +320,40 @@ def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
+def test_creds_auth_token_keychain(
+    httpie_run, set_credentials, creds_auth_type, tmpdir
+):
+    """The plugin retrieves secrets from keychain for HTTP token auth."""
+
+    secrettxt = tmpdir.join("secret.txt")
+    secrettxt.write_text("token-can-be-anything", encoding="UTF-8")
+
+    set_credentials(
+        [
+            {
+                "url": "http://example.com",
+                "auth": [
+                    {
+                        "type": "token",
+                        "token": {
+                            "keychain": "shell",
+                            "command": f"cat {secrettxt.strpath}",
+                        },
+                    }
+                ],
+            }
+        ]
+    )
+    httpie_run(["-A", creds_auth_type, "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "Bearer token-can-be-anything"
+
+
+@responses.activate
 def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
     """The plugin works for HTTP header auth."""
 
@@ -297,6 +366,41 @@ def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
                         "type": "header",
                         "name": "X-Auth",
                         "value": "value-can-be-anything",
+                    }
+                ],
+            }
+        ]
+    )
+    httpie_run(["-A", creds_auth_type, "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["X-Auth"] == "value-can-be-anything"
+
+
+@responses.activate
+def test_creds_auth_header_keychain(
+    httpie_run, set_credentials, creds_auth_type, tmpdir
+):
+    """The plugin retrieves secrets from keychain for HTTP header auth."""
+
+    secrettxt = tmpdir.join("secret.txt")
+    secrettxt.write_text("value-can-be-anything", encoding="UTF-8")
+
+    set_credentials(
+        [
+            {
+                "url": "http://example.com",
+                "auth": [
+                    {
+                        "type": "header",
+                        "name": "X-Auth",
+                        "value": {
+                            "keychain": "shell",
+                            "command": f"cat {secrettxt.strpath}",
+                        },
                     }
                 ],
             }
@@ -379,6 +483,51 @@ def test_creds_auth_combo_header_header(
     assert request.url == "http://example.com/"
     assert request.headers["X-Secret"] == "secret-can-be-anything"
     assert request.headers["X-Auth"] == "auth-can-be-anything"
+
+
+@responses.activate
+def test_creds_auth_combo_token_header_keychain(
+    httpie_run, set_credentials, creds_auth_type, tmpdir
+):
+    """The plugin retrieves secrets from keychains for combination of auths."""
+
+    tokentxt, secrettxt = tmpdir.join("token.txt"), tmpdir.join("secret.txt")
+    tokentxt.write_text("token-can-be-anything", encoding="UTF-8")
+    secrettxt.write_text("secret-can-be-anything", encoding="UTF-8")
+
+    set_credentials(
+        [
+            {
+                "url": "http://example.com",
+                "auth": [
+                    {
+                        "type": "token",
+                        "token": {
+                            "keychain": "shell",
+                            "command": f"cat {tokentxt.strpath}",
+                        },
+                        "scheme": "JWT",
+                    },
+                    {
+                        "type": "header",
+                        "name": "X-Auth",
+                        "value": {
+                            "keychain": "shell",
+                            "command": f"cat {secrettxt.strpath}",
+                        },
+                    },
+                ],
+            }
+        ]
+    )
+    httpie_run(["-A", creds_auth_type, "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "JWT token-can-be-anything"
+    assert request.headers["X-Auth"] == "secret-can-be-anything"
 
 
 @responses.activate
