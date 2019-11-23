@@ -16,16 +16,16 @@ class CredentialStore(object):
     def __init__(self, credentials):
         self._credentials = credentials
 
-    def lookup(self, url, key_id=None):
-        for key in self._credentials:
-            if re.search(key["url"], url):
-                if key_id and key.get("id") != key_id:
+    def lookup(self, url, credential_id=None):
+        for credential in self._credentials:
+            if re.search(credential["url"], url):
+                if credential_id and credential.get("id") != credential_id:
                     continue
-                return key["auth"]
+                return credential["auth"]
 
-        message = "No credentials found for a given URL: '%s'" % url
-        if key_id:
-            message += " (id='%s')" % key_id
+        message = f"No credentials found for a given URL: '{url}'"
+        if credential_id:
+            message += f" (id='{credential_id}')"
         raise LookupError(message)
 
 
@@ -33,15 +33,15 @@ def get_credential_store(name, directory=httpie.config.DEFAULT_CONFIG_DIR):
     """Returns a credential store that can be used to lookup credentials."""
 
     credentials = []
-    confpath = os.path.join(directory, name)
+    credential_file = os.path.join(directory, name)
 
-    if not os.path.exists(confpath):
+    if not os.path.exists(credential_file):
         raise FileNotFoundError(
-            "Credentials file '%s' is not found; please create one and try again."
-            % confpath
+            f"Credentials file '{credential_file}' is not found; "
+            f"please create one and try again."
         )
 
-    mode = stat.S_IMODE(os.stat(confpath).st_mode)
+    mode = stat.S_IMODE(os.stat(credential_file).st_mode)
 
     # Since credentials file may contain unencrypted secrets, I decided to
     # follow the same practice SSH does and do not work if the file can be
@@ -51,18 +51,19 @@ def get_credential_store(name, directory=httpie.config.DEFAULT_CONFIG_DIR):
     if sys.platform != "win32":
         if mode & 0o077 > 0o000:
             raise PermissionError(
-                "Permissions '%04o' for '%s' are too open; please ensure your "
-                "credentials file is NOT accessible by others."
-                % (mode, confpath)
+                f"Permissions '{mode:04o}' for '{credential_file}' are too "
+                f"open; please ensure your credentials file is NOT accessible "
+                f"by others."
             )
 
         if mode & 0o400 != 0o400:
             raise PermissionError(
-                "Permissions '%04o' for '%s' are too close; please ensure your "
-                "credentials file CAN be read by you." % (mode, confpath)
+                f"Permissions '{mode:04o}' for '{credential_file}' are too "
+                f"close; please ensure your credentials file CAN be read by "
+                f"you."
             )
 
-    with io.open(confpath, encoding="UTF-8") as f:
+    with io.open(credential_file, encoding="UTF-8") as f:
         credentials = json.load(f)
 
     return CredentialStore(credentials)

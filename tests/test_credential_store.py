@@ -184,8 +184,8 @@ def test_creds_auth_digest(httpie_run, set_credentials, creds_auth_type):
         "http://example.com",
         status=401,
         headers={
-            "WWW-Authenticate": "Digest %s"
-            % ",".join(
+            "WWW-Authenticate": "Digest "
+            + ",".join(
                 [
                     "realm=auth.example.com",
                     'qop="auth,auth-int"',
@@ -519,7 +519,7 @@ def test_creds_auth_missing(
 def test_creds_lookup_regexp(
     httpie_run, set_credentials, regexp, url, normalized_url, creds_auth_type
 ):
-    """The plugin uses pattern matching to find keys."""
+    """The plugin uses pattern matching to find credentials."""
 
     set_credentials(
         [
@@ -568,7 +568,9 @@ def test_creds_lookup_1st_matched_wins(
 
 
 @responses.activate
-def test_creds_lookup_many_keys(httpie_run, set_credentials, creds_auth_type):
+def test_creds_lookup_many_credentials(
+    httpie_run, set_credentials, creds_auth_type
+):
     """The plugin works with many URLs and credentials."""
 
     responses.add(responses.GET, "https://yoda.ua/about/", status=200)
@@ -637,14 +639,13 @@ def test_creds_lookup_error(
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
-        "http: error: LookupError: No credentials found for a given URL: '%s'"
-        % url
+        f"http: error: LookupError: No credentials found for a given URL: '{url}'"
     )
 
 
 @responses.activate
 def test_creds_lookup_by_id(httpie_run, set_credentials):
-    """The plugin uses a given key ID as a hint for 2+ matches."""
+    """The plugin uses a given credential ID as a hint for 2+ matches."""
 
     set_credentials(
         [
@@ -780,9 +781,9 @@ def test_creds_permissions_unsafe(
     httpie_run(["-A", creds_auth_type, "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (
-        "http: error: PermissionError: Permissions '%04o' for "
-        "'%s' are too open; please ensure your credentials file "
-        "is NOT accessible by others." % (mode, credentials_file)
+        f"http: error: PermissionError: Permissions '{mode:04o}' for "
+        f"'{credentials_file}' are too open; please ensure your credentials "
+        f"file is NOT accessible by others."
     )
 
 
@@ -812,9 +813,9 @@ def test_creds_permissions_not_enough(
     httpie_run(["-A", creds_auth_type, "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (
-        "http: error: PermissionError: Permissions '%04o' for "
-        "'%s' are too close; please ensure your credentials file "
-        "CAN be read by you." % (mode, credentials_file)
+        f"http: error: PermissionError: Permissions '{mode:04o}' for "
+        f"'{credentials_file}' are too close; please ensure your credentials "
+        f"file CAN be read by you."
     )
 
 
@@ -828,6 +829,6 @@ def test_creds_auth_no_database(
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
-        "http: error: FileNotFoundError: Credentials file '%s' "
-        "is not found; please create one and try again." % credentials_file
+        f"http: error: FileNotFoundError: Credentials file '{credentials_file}' "
+        f"is not found; please create one and try again."
     )

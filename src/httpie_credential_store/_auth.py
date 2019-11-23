@@ -20,7 +20,7 @@ class HTTPTokenAuth(HTTPHeaderAuth):
 
     def __init__(self, token, scheme="Bearer"):
         super(HTTPTokenAuth, self).__init__(
-            "Authorization", "%s %s" % (scheme, token)
+            "Authorization", f"{scheme} {token}"
         )
 
 

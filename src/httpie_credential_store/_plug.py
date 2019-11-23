@@ -26,12 +26,12 @@ class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
     auth_parse = False  # do not parse '-a' content
 
     def get_auth(self, username=None, password=None):
-        key_id = self.raw_auth
+        credential_id = self.raw_auth
 
         class CredentialStoreAuth(requests.auth.AuthBase):
             def __call__(self, request):
                 store = get_credential_store("credentials.json")
-                auth = store.lookup(request.url, key_id)
+                auth = store.lookup(request.url, credential_id)
                 set_auth = get_auth(auth)
                 return set_auth(request)
 
