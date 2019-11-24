@@ -12,6 +12,7 @@ keywords = ["httpie", "credential", "store", "keychain", "plugin", "auth"]
 [tool.poetry.dependencies]
 python = "^3.6"
 httpie = "^1.0"
+keyring = "^19.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
