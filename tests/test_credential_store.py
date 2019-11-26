@@ -153,7 +153,9 @@ def test_creds_auth_deactivated_by_default(httpie_run):
 
 
 @responses.activate
-def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
+def test_creds_auth_basic(
+    httpie_run, set_credentials, creds_auth_type, httpie_stderr
+):
     """The plugin works for HTTP basic auth."""
 
     set_credentials(
