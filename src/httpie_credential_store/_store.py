@@ -9,6 +9,8 @@ import sys
 
 import httpie.config
 
+from ._auth import get_auth
+
 
 class CredentialStore(object):
     """Credential store, manages your credentials."""
@@ -16,12 +18,16 @@ class CredentialStore(object):
     def __init__(self, credentials):
         self._credentials = credentials
 
-    def lookup(self, url, credential_id=None):
+    def get_auth_for(self, url, credential_id=None):
+        """Return requests' auth instance."""
+
         for credential in self._credentials:
             if re.search(credential["url"], url):
                 if credential_id and credential.get("id") != credential_id:
                     continue
-                return credential["auth"]
+
+                auth = credential["auth"].copy()
+                return get_auth(auth.pop("provider"), **auth)
 
         message = f"No credentials found for a given URL: '{url}'"
         if credential_id:
