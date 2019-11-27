@@ -3,7 +3,7 @@
 import collections.abc
 import requests.auth
 
-from ._keychains import get_keychain
+from ._keychain import get_keychain
 
 
 def get_secret_value(value):

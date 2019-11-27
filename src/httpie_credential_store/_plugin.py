@@ -4,7 +4,7 @@ import requests
 import httpie.plugins
 
 from ._auth import get_auth
-from ._cred import get_credential_store
+from ._store import get_credential_store
 
 
 class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):

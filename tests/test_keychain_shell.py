@@ -9,12 +9,12 @@ import pytest
 def testkeychain():
     """Keychain instance under test."""
 
-    # For the same reasons as in tests/test_credential_store.py, all imports
-    # that trigger HTTPie importing must be postponed till one of our fixtures
-    # is evaluated and patched a path to HTTPie configuration.
-    from httpie_credential_store import _keychains
+    # For the same reasons as in tests/test_plugin.py, all imports that trigger
+    # HTTPie importing must be postponed till one of our fixtures is evaluated
+    # and patched a path to HTTPie configuration.
+    from httpie_credential_store import _keychain
 
-    return _keychains.ShellKeychain()
+    return _keychain.ShellKeychain()
 
 
 def test_secret_retrieved(testkeychain, tmpdir):
