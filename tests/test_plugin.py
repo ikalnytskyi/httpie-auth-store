@@ -142,9 +142,11 @@ def test_creds_auth_basic(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {"type": "basic", "username": "user", "password": "p@ss"}
-                ],
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": "p@ss",
+                },
             }
         ]
     )
@@ -170,16 +172,14 @@ def test_creds_auth_basic_keychain(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "basic",
-                        "username": "user",
-                        "password": {
-                            "keychain": "shell",
-                            "command": f"cat {secrettxt.strpath}",
-                        },
-                    }
-                ],
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt.strpath}",
+                    },
+                },
             }
         ]
     )
@@ -217,9 +217,11 @@ def test_creds_auth_digest(httpie_run, set_credentials, creds_auth_type):
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {"type": "digest", "username": "user", "password": "p@ss"}
-                ],
+                "auth": {
+                    "provider": "digest",
+                    "username": "user",
+                    "password": "p@ss",
+                },
             }
         ]
     )
@@ -261,7 +263,10 @@ def test_creds_auth_token(httpie_run, set_credentials, creds_auth_type):
         [
             {
                 "url": "http://example.com",
-                "auth": [{"type": "token", "token": "token-can-be-anything"}],
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                },
             }
         ]
     )
@@ -282,13 +287,11 @@ def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "token",
-                        "token": "token-can-be-anything",
-                        "scheme": "JWT",
-                    }
-                ],
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                    "scheme": "JWT",
+                },
             }
         ]
     )
@@ -314,15 +317,13 @@ def test_creds_auth_token_keychain(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "token",
-                        "token": {
-                            "keychain": "shell",
-                            "command": f"cat {secrettxt.strpath}",
-                        },
-                    }
-                ],
+                "auth": {
+                    "provider": "token",
+                    "token": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt.strpath}",
+                    },
+                },
             }
         ]
     )
@@ -343,13 +344,11 @@ def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "header",
-                        "name": "X-Auth",
-                        "value": "value-can-be-anything",
-                    }
-                ],
+                "auth": {
+                    "provider": "header",
+                    "name": "X-Auth",
+                    "value": "value-can-be-anything",
+                },
             }
         ]
     )
@@ -375,16 +374,14 @@ def test_creds_auth_header_keychain(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "header",
-                        "name": "X-Auth",
-                        "value": {
-                            "keychain": "shell",
-                            "command": f"cat {secrettxt.strpath}",
-                        },
-                    }
-                ],
+                "auth": {
+                    "provider": "header",
+                    "name": "X-Auth",
+                    "value": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt.strpath}",
+                    },
+                },
             }
         ]
     )
@@ -398,27 +395,30 @@ def test_creds_auth_header_keychain(
 
 
 @responses.activate
-def test_creds_auth_combo_token_header(
+def test_creds_auth_multiple_token_header(
     httpie_run, set_credentials, creds_auth_type
 ):
-    """The plugin works for combination of auths."""
+    """The plugin works for multiple auths."""
 
     set_credentials(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "token",
-                        "token": "token-can-be-anything",
-                        "scheme": "JWT",
-                    },
-                    {
-                        "type": "header",
-                        "name": "X-Auth",
-                        "value": "value-can-be-anything",
-                    },
-                ],
+                "auth": {
+                    "provider": "multiple",
+                    "providers": [
+                        {
+                            "provider": "token",
+                            "token": "token-can-be-anything",
+                            "scheme": "JWT",
+                        },
+                        {
+                            "provider": "header",
+                            "name": "X-Auth",
+                            "value": "value-can-be-anything",
+                        },
+                    ],
+                },
             }
         ]
     )
@@ -433,7 +433,7 @@ def test_creds_auth_combo_token_header(
 
 
 @responses.activate
-def test_creds_auth_combo_header_header(
+def test_creds_auth_multiple_header_header(
     httpie_run, set_credentials, creds_auth_type
 ):
     """The plugin supports usage of the same auth provider twice."""
@@ -442,18 +442,21 @@ def test_creds_auth_combo_header_header(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "header",
-                        "name": "X-Secret",
-                        "value": "secret-can-be-anything",
-                    },
-                    {
-                        "type": "header",
-                        "name": "X-Auth",
-                        "value": "auth-can-be-anything",
-                    },
-                ],
+                "auth": {
+                    "provider": "multiple",
+                    "providers": [
+                        {
+                            "provider": "header",
+                            "name": "X-Secret",
+                            "value": "secret-can-be-anything",
+                        },
+                        {
+                            "provider": "header",
+                            "name": "X-Auth",
+                            "value": "auth-can-be-anything",
+                        },
+                    ],
+                },
             }
         ]
     )
@@ -468,7 +471,7 @@ def test_creds_auth_combo_header_header(
 
 
 @responses.activate
-def test_creds_auth_combo_token_header_keychain(
+def test_creds_auth_multiple_token_header_keychain(
     httpie_run, set_credentials, creds_auth_type, tmpdir
 ):
     """The plugin retrieves secrets from keychains for combination of auths."""
@@ -481,24 +484,27 @@ def test_creds_auth_combo_token_header_keychain(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "type": "token",
-                        "token": {
-                            "keychain": "shell",
-                            "command": f"cat {tokentxt.strpath}",
+                "auth": {
+                    "provider": "multiple",
+                    "providers": [
+                        {
+                            "provider": "token",
+                            "token": {
+                                "keychain": "shell",
+                                "command": f"cat {tokentxt.strpath}",
+                            },
+                            "scheme": "JWT",
                         },
-                        "scheme": "JWT",
-                    },
-                    {
-                        "type": "header",
-                        "name": "X-Auth",
-                        "value": {
-                            "keychain": "shell",
-                            "command": f"cat {secrettxt.strpath}",
+                        {
+                            "provider": "header",
+                            "name": "X-Auth",
+                            "value": {
+                                "keychain": "shell",
+                                "command": f"cat {secrettxt.strpath}",
+                            },
                         },
-                    },
-                ],
+                    ],
+                },
             }
         ]
     )
@@ -517,64 +523,70 @@ def test_creds_auth_combo_token_header_keychain(
     ["auth", "error"],
     [
         pytest.param(
-            {"type": "basic"},
-            r"http: error: TypeError: __init__() missing 2 required positional "
-            r"arguments: 'username' and 'password'",
+            {"provider": "basic"},
+            r"http: error: TypeError: __init__() missing 2 required "
+            r"keyword-only arguments: 'username' and 'password'",
             id="basic-both",
         ),
         pytest.param(
-            {"type": "basic", "username": "user"},
-            r"http: error: TypeError: __init__() missing 1 required positional "
-            r"argument: 'password'",
-            id="basic-both",
+            {"provider": "basic", "username": "user"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'password'",
+            id="basic-passowrd",
         ),
         pytest.param(
-            {"type": "basic", "password": "p@ss"},
-            r"http: error: TypeError: __init__() missing 1 required positional "
-            r"argument: 'username'",
-            id="basic-both",
+            {"provider": "basic", "password": "p@ss"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'username'",
+            id="basic-username",
         ),
         pytest.param(
-            {"type": "digest"},
-            r"http: error: TypeError: __init__() missing 2 required positional "
-            r"arguments: 'username' and 'password'",
+            {"provider": "digest"},
+            r"http: error: TypeError: __init__() missing 2 required "
+            r"keyword-only arguments: 'username' and 'password'",
             id="digest-both",
         ),
         pytest.param(
-            {"type": "digest", "username": "user"},
-            r"http: error: TypeError: __init__() missing 1 required positional "
-            r"argument: 'password'",
-            id="digest-both",
+            {"provider": "digest", "username": "user"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'password'",
+            id="digest-password",
         ),
         pytest.param(
-            {"type": "digest", "password": "p@ss"},
-            r"http: error: TypeError: __init__() missing 1 required positional "
-            r"argument: 'username'",
-            id="digest-both",
+            {"provider": "digest", "password": "p@ss"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'username'",
+            id="digest-username",
         ),
         pytest.param(
-            {"type": "token"},
-            r"http: error: TypeError: __init__() missing 1 required positional "
-            r"argument: 'token'",
+            {"provider": "token"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'token'",
             id="token",
         ),
         pytest.param(
-            {"type": "header"},
-            r"http: error: TypeError: __init__() missing 2 required positional "
-            r"arguments: 'name' and 'value'",
+            {"provider": "header"},
+            r"http: error: TypeError: __init__() missing 2 required "
+            r"keyword-only arguments: 'name' and 'value'",
             id="header-both",
         ),
         pytest.param(
-            {"type": "header", "name": "X-Auth"},
-            r"http: error: TypeError: __init__() missing 1 required positional "
-            r"argument: 'value'",
+            {"provider": "header", "name": "X-Auth"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'value'",
             id="header-value",
         ),
         pytest.param(
-            {"type": "header", "value": "value-can-be-anything"},
-            r"http: error: TypeError: __init__() missing 1 required positional "
-            r"argument: 'name'",
+            {"provider": "header", "value": "value-can-be-anything"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'name'",
             id="header-name",
+        ),
+        pytest.param(
+            {"provider": "multiple"},
+            r"http: error: TypeError: __init__() missing 1 required "
+            r"keyword-only argument: 'providers'",
+            id="multiple",
         ),
     ],
 )
@@ -583,7 +595,7 @@ def test_creds_auth_missing(
 ):
     """The plugin raises error on wrong parameters."""
 
-    set_credentials([{"url": "http://example.com", "auth": [auth]}])
+    set_credentials([{"url": "http://example.com", "auth": auth}])
     httpie_run(["-A", creds_auth_type, "http://example.com"])
 
     assert len(responses.calls) == 0
@@ -656,7 +668,10 @@ def test_creds_lookup_regexp(
         [
             {
                 "url": regexp,
-                "auth": [{"type": "token", "token": "token-can-be-anything"}],
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                },
             }
         ]
     )
@@ -679,13 +694,18 @@ def test_creds_lookup_1st_matched_wins(
         [
             {
                 "url": "yoda.ua",
-                "auth": [{"type": "token", "token": "token-can-be-anything"}],
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                },
             },
             {
                 "url": "yoda.ua/v2",
-                "auth": [
-                    {"type": "basic", "username": "user", "password": "p@ss"}
-                ],
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": "p@ss",
+                },
             },
         ]
     )
@@ -711,13 +731,18 @@ def test_creds_lookup_many_credentials(
         [
             {
                 "url": "yoda.ua",
-                "auth": [{"type": "token", "token": "token-can-be-anything"}],
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                },
             },
             {
                 "url": "http://skywalker.com",
-                "auth": [
-                    {"type": "basic", "username": "user", "password": "p@ss"}
-                ],
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": "p@ss",
+                },
             },
         ]
     )
@@ -762,7 +787,10 @@ def test_creds_lookup_error(
         [
             {
                 "url": regexp,
-                "auth": [{"type": "token", "token": "token-can-be-anything"}],
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                },
             }
         ]
     )
@@ -782,12 +810,12 @@ def test_creds_lookup_by_id(httpie_run, set_credentials):
         [
             {
                 "url": "yoda.ua",
-                "auth": [{"type": "token", "token": "i-am-yoda"}],
+                "auth": {"provider": "token", "token": "i-am-yoda"},
             },
             {
                 "id": "luke",
                 "url": "yoda.ua",
-                "auth": [{"type": "token", "token": "i-am-skywalker"}],
+                "auth": {"provider": "token", "token": "i-am-skywalker"},
             },
         ]
     )
@@ -817,12 +845,12 @@ def test_creds_lookup_by_id_error(
             {
                 "id": "yoda",
                 "url": "yoda.ua",
-                "auth": [{"type": "token", "token": "i-am-yoda"}],
+                "auth": {"provider": "token", "token": "i-am-yoda"},
             },
             {
                 "id": "luke",
                 "url": "yoda.ua",
-                "auth": [{"type": "token", "token": "i-am-skywalker"}],
+                "auth": {"provider": "token", "token": "i-am-skywalker"},
             },
         ]
     )
@@ -859,9 +887,11 @@ def test_creds_permissions_safe(
         [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {"type": "basic", "username": "user", "password": "p@ss"}
-                ],
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": "p@ss",
+                },
             }
         ],
         mode=mode,
@@ -908,7 +938,7 @@ def test_creds_permissions_unsafe(
 ):
     """The plugin complains if credentials file has unsafe permissions."""
 
-    set_credentials([{"url": "http://example.com", "auth": []}], mode=mode)
+    set_credentials([{"url": "http://example.com", "auth": {}}], mode=mode)
     httpie_run(["-A", creds_auth_type, "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (
@@ -940,7 +970,7 @@ def test_creds_permissions_not_enough(
 ):
     """The plugin complains if credentials file has unsafe permissions."""
 
-    set_credentials([{"url": "http://example.com", "auth": []}], mode=mode)
+    set_credentials([{"url": "http://example.com", "auth": {}}], mode=mode)
     httpie_run(["-A", creds_auth_type, "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (

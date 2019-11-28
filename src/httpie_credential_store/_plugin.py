@@ -3,7 +3,6 @@
 import requests
 import httpie.plugins
 
-from ._auth import get_auth
 from ._store import get_credential_store
 
 
@@ -17,7 +16,7 @@ class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
     """
 
     name = "credential-store"
-    description = "Retrieve and set auth information based on URL."
+    description = "Retrieve & attach authentication to ongoing HTTP request."
 
     auth_type = (
         "credential-store"  # use plugin by passing '-A credential-store'
@@ -31,9 +30,8 @@ class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
         class CredentialStoreAuth(requests.auth.AuthBase):
             def __call__(self, request):
                 store = get_credential_store("credentials.json")
-                auth = store.lookup(request.url, credential_id)
-                set_auth = get_auth(auth)
-                return set_auth(request)
+                auth = store.get_auth_for(request.url, credential_id)
+                return auth(request)
 
         return CredentialStoreAuth()
 
