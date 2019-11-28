@@ -993,3 +993,70 @@ def test_creds_auth_no_database(
         f"http: error: FileNotFoundError: Credentials file '{credentials_file}' "
         f"is not found; please create one and try again."
     )
+
+
+@responses.activate
+@pytest.mark.parametrize(
+    ["auth", "error"],
+    [
+        pytest.param(
+            {"provider": "header", "name": "X-Auth", "value": "p@ss\n"},
+            r"http: error: ValueError: HTTP header authentication provider "
+            r"received invalid header value: 'p@ss\n'. Please remove illegal "
+            r"characters and try again.",
+            id="header-value",
+        ),
+        pytest.param(
+            {"provider": "token", "token": "t0ken\n"},
+            r"http: error: ValueError: HTTP token authentication provider "
+            r"received token that contains illegal characters: 't0ken\n'. "
+            r"Please remove these characters and try again.",
+            id="token-token",
+        ),
+        pytest.param(
+            {"provider": "token", "token": "t0ken", "scheme": "J\nWT"},
+            r"http: error: ValueError: HTTP token authentication provider "
+            r"received scheme that contains illegal characters: 'J\nWT'. "
+            r"Please remove these characters and try again.",
+            id="token-scheme",
+        ),
+    ],
+)
+def test_creds_auth_header_value_illegal_characters(
+    httpie_run, set_credentials, httpie_stderr, creds_auth_type, auth, error
+):
+    set_credentials([{"url": "http://example.com", "auth": auth}])
+    httpie_run(["-A", creds_auth_type, "http://example.com"])
+
+    assert len(responses.calls) == 0
+    assert httpie_stderr.getvalue().strip() == error
+
+
+@responses.activate
+@pytest.mark.parametrize(
+    ["auth", "error"],
+    [
+        pytest.param(
+            {"provider": "header", "name": "X-Auth\n", "value": "p@ss"},
+            r"http: error: ValueError: HTTP header authentication provider "
+            r"received invalid header name: 'X-Auth\n'. Please remove illegal "
+            r"characters and try again.",
+            id="header-name-newline",
+        ),
+        pytest.param(
+            {"provider": "header", "name": "X:Auth", "value": "p@ss"},
+            r"http: error: ValueError: HTTP header authentication provider "
+            r"received invalid header name: 'X:Auth'. Please remove illegal "
+            r"characters and try again.",
+            id="header-name-colon",
+        ),
+    ],
+)
+def test_creds_auth_header_name_illegal_characters(
+    httpie_run, set_credentials, httpie_stderr, creds_auth_type, auth, error
+):
+    set_credentials([{"url": "http://example.com", "auth": auth}])
+    httpie_run(["-A", creds_auth_type, "http://example.com"])
+
+    assert len(responses.calls) == 0
+    assert httpie_stderr.getvalue().strip() == error
