@@ -31,6 +31,23 @@ class ShellKeychain(KeychainProvider):
             raise LookupError(f"No secret found: {exc}")
 
 
+class PasswordStoreKeychain(ShellKeychain):
+    """Retrieve secret from password-store."""
+
+    name = "password-store"
+
+    def get(self, *, name):
+        try:
+            # password-store may store securely extra information along with a
+            # password. Nevertheless, a password is always a first line.
+            text = super(PasswordStoreKeychain, self).get(
+                command=f"pass {name}"
+            )
+            return text.splitlines()[0]
+        except LookupError:
+            raise LookupError(f"password-store: no secret found: '{name}'")
+
+
 class SystemKeychain(KeychainProvider):
     """Retrieve secret from the system's keychain."""
 
