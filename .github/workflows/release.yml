@@ -9,9 +9,15 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v1
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
       - name: Publish to PyPI
-        env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
         run: |
           pip install poetry
-          poetry run poetry publish
+          poetry build
+          poetry publish --username __token__ --password ${{ secrets.PYPI_TOKEN }}
