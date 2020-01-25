@@ -92,7 +92,7 @@ def httpie_run(httpie_stderr):
         import httpie.core
         import httpie.context
 
-        args.insert(0, "--ignore-stdin")
+        args = ["http", "--ignore-stdin"] + args
         env = httpie.context.Environment(stderr=httpie_stderr)
         return httpie.core.main(args, env=env)
 
