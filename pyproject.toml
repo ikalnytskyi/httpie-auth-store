@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "httpie-credential-store"
-version = "1.0.0"
+version = "2.0.0"
 description = "HTTPie: one auth to rule them all!"
 authors = ["Ihor Kalnytskyi <ihor@kalnytskyi.com>"]
 license = "MIT"
