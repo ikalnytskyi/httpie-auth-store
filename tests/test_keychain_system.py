@@ -7,6 +7,8 @@ import pytest
 class _InmemoryKeyring(keyring.backend.KeyringBackend):
     """Keyring backend that stores secrets in-memory."""
 
+    priority = 1
+
     def __init__(self):
         self._keyring = {}
 
