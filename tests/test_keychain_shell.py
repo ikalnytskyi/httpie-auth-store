@@ -31,7 +31,7 @@ def test_secret_retrieved_pipe(testkeychain, tmpdir):
     secrettxt = tmpdir.join("secret.txt")
     secrettxt.write_text("p@ss\nextra", encoding="UTF-8")
 
-    command = fr"cat {secrettxt.strpath} | head -n 1 | tr -d {os.linesep!r}"
+    command = rf"cat {secrettxt.strpath} | head -n 1 | tr -d {os.linesep!r}"
     assert testkeychain.get(command=command) == "p@ss"
 
 

@@ -40,9 +40,7 @@ class PasswordStoreKeychain(ShellKeychain):
         try:
             # password-store may store securely extra information along with a
             # password. Nevertheless, a password is always a first line.
-            text = super(PasswordStoreKeychain, self).get(
-                command=f"pass {name}"
-            )
+            text = super(PasswordStoreKeychain, self).get(command=f"pass {name}")
             return text.splitlines()[0]
         except LookupError:
             raise LookupError(f"password-store: no secret found: '{name}'")

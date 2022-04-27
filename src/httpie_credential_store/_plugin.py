@@ -18,9 +18,7 @@ class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
     name = "credential-store"
     description = "Retrieve & attach authentication to ongoing HTTP request."
 
-    auth_type = (
-        "credential-store"  # use plugin by passing '-A credential-store'
-    )
+    auth_type = "credential-store"  # use plugin by passing '-A credential-store'
     auth_require = False  # do not require passing '-a' argument
     auth_parse = False  # do not parse '-a' content
 

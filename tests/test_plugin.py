@@ -133,9 +133,7 @@ def test_creds_auth_deactivated_by_default(httpie_run):
 
 
 @responses.activate
-def test_creds_auth_basic(
-    httpie_run, set_credentials, creds_auth_type, httpie_stderr
-):
+def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type, httpie_stderr):
     """The plugin works for HTTP basic auth."""
 
     set_credentials(
@@ -395,9 +393,7 @@ def test_creds_auth_header_keychain(
 
 
 @responses.activate
-def test_creds_auth_multiple_token_header(
-    httpie_run, set_credentials, creds_auth_type
-):
+def test_creds_auth_multiple_token_header(httpie_run, set_credentials, creds_auth_type):
     """The plugin works for multiple auths."""
 
     set_credentials(
@@ -520,78 +516,78 @@ def test_creds_auth_multiple_token_header_keychain(
 
 @responses.activate
 @pytest.mark.parametrize(
-    ["auth", "error"],
+    ["auth", "error_pattern"],
     [
         pytest.param(
             {"provider": "basic"},
-            r"http: error: TypeError: __init__() missing 2 required "
+            r"http: error: TypeError: (HTTPBasicAuth\.)?__init__\(\) missing 2 required "
             r"keyword-only arguments: 'username' and 'password'",
             id="basic-both",
         ),
         pytest.param(
             {"provider": "basic", "username": "user"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPBasicAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'password'",
             id="basic-passowrd",
         ),
         pytest.param(
             {"provider": "basic", "password": "p@ss"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPBasicAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'username'",
             id="basic-username",
         ),
         pytest.param(
             {"provider": "digest"},
-            r"http: error: TypeError: __init__() missing 2 required "
+            r"http: error: TypeError: (HTTPDigestAuth\.)?__init__\(\) missing 2 required "
             r"keyword-only arguments: 'username' and 'password'",
             id="digest-both",
         ),
         pytest.param(
             {"provider": "digest", "username": "user"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPDigestAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'password'",
             id="digest-password",
         ),
         pytest.param(
             {"provider": "digest", "password": "p@ss"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPDigestAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'username'",
             id="digest-username",
         ),
         pytest.param(
             {"provider": "token"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPTokenAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'token'",
             id="token",
         ),
         pytest.param(
             {"provider": "header"},
-            r"http: error: TypeError: __init__() missing 2 required "
+            r"http: error: TypeError: (HTTPHeaderAuth\.)?__init__\(\) missing 2 required "
             r"keyword-only arguments: 'name' and 'value'",
             id="header-both",
         ),
         pytest.param(
             {"provider": "header", "name": "X-Auth"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPHeaderAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'value'",
             id="header-value",
         ),
         pytest.param(
             {"provider": "header", "value": "value-can-be-anything"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPHeaderAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'name'",
             id="header-name",
         ),
         pytest.param(
             {"provider": "multiple"},
-            r"http: error: TypeError: __init__() missing 1 required "
+            r"http: error: TypeError: (HTTPMultipleAuth\.)?__init__\(\) missing 1 required "
             r"keyword-only argument: 'providers'",
             id="multiple",
         ),
     ],
 )
 def test_creds_auth_missing(
-    httpie_run, set_credentials, httpie_stderr, auth, error, creds_auth_type
+    httpie_run, set_credentials, httpie_stderr, auth, error_pattern, creds_auth_type
 ):
     """The plugin raises error on wrong parameters."""
 
@@ -599,7 +595,7 @@ def test_creds_auth_missing(
     httpie_run(["-A", creds_auth_type, "http://example.com"])
 
     assert len(responses.calls) == 0
-    assert httpie_stderr.getvalue().strip() == error
+    assert re.fullmatch(error_pattern, httpie_stderr.getvalue().strip())
 
 
 @responses.activate
@@ -685,9 +681,7 @@ def test_creds_lookup_regexp(
 
 
 @responses.activate
-def test_creds_lookup_1st_matched_wins(
-    httpie_run, set_credentials, creds_auth_type
-):
+def test_creds_lookup_1st_matched_wins(httpie_run, set_credentials, creds_auth_type):
     """The plugin uses auth of first matched credential entry."""
 
     set_credentials(
@@ -719,9 +713,7 @@ def test_creds_lookup_1st_matched_wins(
 
 
 @responses.activate
-def test_creds_lookup_many_credentials(
-    httpie_run, set_credentials, creds_auth_type
-):
+def test_creds_lookup_many_credentials(httpie_run, set_credentials, creds_auth_type):
     """The plugin works with many URLs and credentials."""
 
     responses.add(responses.GET, "https://yoda.ua/about/", status=200)
@@ -763,12 +755,8 @@ def test_creds_lookup_many_credentials(
 @pytest.mark.parametrize(
     ["regexp", "url"],
     [
-        pytest.param(
-            r"http://example.com/", "https://example.com/", id="http-https"
-        ),
-        pytest.param(
-            r"https://example.com", "http://example.com/", id="https-http"
-        ),
+        pytest.param(r"http://example.com/", "https://example.com/", id="http-https"),
+        pytest.param(r"https://example.com", "http://example.com/", id="https-http"),
         pytest.param(r"^example.com", "https://example.com/", id="^regexp"),
         pytest.param(r"example.com", "http://example.org/", id="org-com"),
         pytest.param(
@@ -778,9 +766,7 @@ def test_creds_lookup_many_credentials(
         ),
     ],
 )
-def test_creds_lookup_error(
-    httpie_run, set_credentials, regexp, url, httpie_stderr
-):
+def test_creds_lookup_error(httpie_run, set_credentials, regexp, url, httpie_stderr):
     """The plugin raises error if no credentials found."""
 
     set_credentials(
@@ -820,9 +806,7 @@ def test_creds_lookup_by_id(httpie_run, set_credentials):
         ]
     )
     httpie_run(["-A", "credential-store", "https://yoda.ua/about/"])
-    httpie_run(
-        ["-A", "credential-store", "-a", "luke", "https://yoda.ua/about/"]
-    )
+    httpie_run(["-A", "credential-store", "-a", "luke", "https://yoda.ua/about/"])
     assert len(responses.calls) == 2
 
     request = responses.calls[0].request
@@ -855,9 +839,7 @@ def test_creds_lookup_by_id_error(
         ]
     )
 
-    httpie_run(
-        ["-A", creds_auth_type, "-a", "vader", "https://yoda.ua/about/"]
-    )
+    httpie_run(["-A", creds_auth_type, "-a", "vader", "https://yoda.ua/about/"])
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
         "http: error: LookupError: No credentials found for a given URL: "
@@ -866,9 +848,7 @@ def test_creds_lookup_by_id_error(
 
 
 @responses.activate
-@pytest.mark.skipif(
-    _is_windows, reason="no support for permissions on windows"
-)
+@pytest.mark.skipif(_is_windows, reason="no support for permissions on windows")
 @pytest.mark.parametrize(
     ["mode"],
     [
@@ -878,9 +858,7 @@ def test_creds_lookup_by_id_error(
         pytest.param(0o400, id="0400"),
     ],
 )
-def test_creds_permissions_safe(
-    httpie_run, set_credentials, mode, creds_auth_type
-):
+def test_creds_permissions_safe(httpie_run, set_credentials, mode, creds_auth_type):
     """The plugin doesn't complain if credentials file has safe permissions."""
 
     set_credentials(
@@ -906,9 +884,7 @@ def test_creds_permissions_safe(
 
 
 @responses.activate
-@pytest.mark.skipif(
-    _is_windows, reason="no support for permissions on windows"
-)
+@pytest.mark.skipif(_is_windows, reason="no support for permissions on windows")
 @pytest.mark.parametrize(
     ["mode"],
     [
@@ -949,9 +925,7 @@ def test_creds_permissions_unsafe(
 
 
 @responses.activate
-@pytest.mark.skipif(
-    _is_windows, reason="no support for permissions on windows"
-)
+@pytest.mark.skipif(_is_windows, reason="no support for permissions on windows")
 @pytest.mark.parametrize(
     ["mode"],
     [

@@ -1,6 +1,7 @@
 """Tests password-store keychain provider."""
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,7 +19,8 @@ _is_macos = sys.platform == "darwin"
 # sense even to try make these tests green on Windows because I doubt there
 # will ever be password-store users on that operating system.
 pytestmark = pytest.mark.skipif(
-    _is_windows, reason="password-store is not supported on windows",
+    _is_windows,
+    reason="password-store is not supported on windows",
 )
 
 
@@ -48,8 +50,8 @@ def gpg_key_id(monkeypatch, tmpdir):
         textwrap.dedent(
             """
                 %no-protection
-                Key-Type: default
-                Subkey-Type: default
+                Key-Type: RSA
+                Subkey-Type: RSA
                 Name-Real: Test
                 Name-Email: test@test
                 Expire-Date: 0
@@ -59,17 +61,19 @@ def gpg_key_id(monkeypatch, tmpdir):
         encoding="UTF-8",
     )
 
-    report = subprocess.check_output(
+    subprocess.check_output(
         f"gpg --batch --generate-key {gpgtemplate}",
         shell=True,
         stderr=subprocess.STDOUT,
+    )
+    keys = subprocess.check_output(
+        "gpg --list-secret-keys", shell=True, stderr=subprocess.STDOUT
     ).decode("UTF-8")
 
-    for line in report.splitlines():
-        if line.startswith("gpg: key "):
-            return line.split()[2]
-
-    raise RuntimeError("cannot generate a GPG key")
+    key = re.search(r"\s+([0-9A-F]{40})\s+", keys)
+    if not key:
+        raise RuntimeError("cannot generate a GPG key")
+    return key.group(1)
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -78,7 +82,9 @@ def password_store_dir(monkeypatch, tmpdir):
 
     passstore = tmpdir.join(".password-store")
     monkeypatch.setitem(
-        os.environ, "PASSWORD_STORE_DIR", passstore.strpath,
+        os.environ,
+        "PASSWORD_STORE_DIR",
+        passstore.strpath,
     )
     return passstore.strpath
 
@@ -99,7 +105,7 @@ def test_secret_retrieved(testkeychain, gpg_key_id):
     """The keychain returns stored secret, no bullshit."""
 
     subprocess.run(f"pass init {gpg_key_id}", shell=True)
-    subprocess.run(f"pass generate testservice/testuser 14", shell=True)
+    subprocess.run("pass generate testservice/testuser 14", shell=True)
 
     secret = testkeychain.get(name="testservice/testuser")
     assert len(secret) == 14
