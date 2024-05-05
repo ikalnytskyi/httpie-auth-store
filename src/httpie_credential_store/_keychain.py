@@ -28,7 +28,8 @@ class ShellKeychain(KeychainProvider):
         try:
             return subprocess.check_output(command, shell=True).decode("UTF-8")
         except subprocess.CalledProcessError as exc:
-            raise LookupError(f"No secret found: {exc}")
+            error_message = f"No secret found: {exc}"
+            raise LookupError(error_message) from exc
 
 
 class PasswordStoreKeychain(ShellKeychain):
@@ -40,10 +41,11 @@ class PasswordStoreKeychain(ShellKeychain):
         try:
             # password-store may store securely extra information along with a
             # password. Nevertheless, a password is always a first line.
-            text = super(PasswordStoreKeychain, self).get(command=f"pass {name}")
+            text = super().get(command=f"pass {name}")
             return text.splitlines()[0]
-        except LookupError:
-            raise LookupError(f"password-store: no secret found: '{name}'")
+        except LookupError as exc:
+            error_message = f"password-store: no secret found: '{name}'"
+            raise LookupError(error_message) from exc
 
 
 class SystemKeychain(KeychainProvider):
@@ -57,10 +59,11 @@ class SystemKeychain(KeychainProvider):
     def get(self, *, service, username):
         secret = self._keyring.get_password(service, username)
         if not secret:
-            raise LookupError(
+            error_message = (
                 f"No secret found for '{service}' service and '{username}' "
                 f"username in '{self.name}' keychain."
             )
+            raise LookupError(error_message)
         return secret
 
 

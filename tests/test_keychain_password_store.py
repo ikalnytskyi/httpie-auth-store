@@ -10,7 +10,6 @@ import textwrap
 import py
 import pytest
 
-
 _is_windows = sys.platform == "win32"
 _is_macos = sys.platform == "darwin"
 
@@ -32,13 +31,13 @@ if _is_macos:
     # built-in 'tmpdir' fixture produces too long names. That's why on macOS we
     # override 'tmpdir' fixture to return much shorter path to a temporary
     # directory.
-    @pytest.fixture(scope="function")
+    @pytest.fixture()
     def tmpdir():
         with tempfile.TemporaryDirectory() as path:
             yield py.path.local(path)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def gpg_key_id(monkeypatch, tmpdir):
     """Return a Key ID of just generated GPG key."""
 
@@ -72,11 +71,12 @@ def gpg_key_id(monkeypatch, tmpdir):
 
     key = re.search(r"\s+([0-9A-F]{40})\s+", keys)
     if not key:
-        raise RuntimeError("cannot generate a GPG key")
+        error_message = "cannot generate a GPG key"
+        raise RuntimeError(error_message)
     return key.group(1)
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def password_store_dir(monkeypatch, tmpdir):
     """Set password-store home directory to a temporary one."""
 
@@ -89,7 +89,7 @@ def password_store_dir(monkeypatch, tmpdir):
     return passstore.strpath
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def testkeychain():
     """Keychain instance under test."""
 
@@ -104,8 +104,8 @@ def testkeychain():
 def test_secret_retrieved(testkeychain, gpg_key_id):
     """The keychain returns stored secret, no bullshit."""
 
-    subprocess.run(f"pass init {gpg_key_id}", shell=True)
-    subprocess.run("pass generate testservice/testuser 14", shell=True)
+    subprocess.run(f"pass init {gpg_key_id}", shell=True, check=False)
+    subprocess.run("pass generate testservice/testuser 14", shell=True, check=False)
 
     secret = testkeychain.get(name="testservice/testuser")
     assert len(secret) == 14
@@ -117,4 +117,4 @@ def test_secret_not_found(testkeychain):
     with pytest.raises(LookupError) as excinfo:
         testkeychain.get(name="testservice/testuser")
 
-    assert str(excinfo.value) == ("password-store: no secret found: 'testservice/testuser'")
+    assert str(excinfo.value) == "password-store: no secret found: 'testservice/testuser'"

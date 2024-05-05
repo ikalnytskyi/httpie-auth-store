@@ -1,7 +1,7 @@
 import os
 import tempfile
+import unittest.mock as mock
 
-import mock
 import pytest
 
 
@@ -18,6 +18,7 @@ def _httpie_config_dir():
     # HTTPie package is imported and that's why the very same value must be
     # used for all tests (session scope). Otherwise, tests may fail because
     # they will look for credentials file in different directory.
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with mock.patch.dict(os.environ, {"HTTPIE_CONFIG_DIR": tmpdir}):
-            yield tmpdir
+    with tempfile.TemporaryDirectory() as tmpdir, mock.patch.dict(
+        os.environ, {"HTTPIE_CONFIG_DIR": tmpdir}
+    ):
+        yield tmpdir

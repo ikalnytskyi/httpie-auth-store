@@ -8,7 +8,6 @@ import requests.auth
 
 from ._keychain import get_keychain
 
-
 # These patterns are copied over from built-in `http.client` implementation,
 # and are more lenient than RFC definitions for backwards compatibility
 # reasons.
@@ -45,7 +44,7 @@ class HTTPBasicAuth(requests.auth.HTTPBasicAuth, AuthProvider):
     name = "basic"
 
     def __init__(self, *, username, password):
-        super(HTTPBasicAuth, self).__init__(username, get_secret(password))
+        super().__init__(username, get_secret(password))
 
 
 class HTTPDigestAuth(requests.auth.HTTPDigestAuth, AuthProvider):
@@ -54,7 +53,7 @@ class HTTPDigestAuth(requests.auth.HTTPDigestAuth, AuthProvider):
     name = "digest"
 
     def __init__(self, *, username, password):
-        super(HTTPDigestAuth, self).__init__(username, get_secret(password))
+        super().__init__(username, get_secret(password))
 
 
 class HTTPHeaderAuth(requests.auth.AuthBase, AuthProvider):
@@ -67,18 +66,20 @@ class HTTPHeaderAuth(requests.auth.AuthBase, AuthProvider):
         self._value = get_secret(value)
 
         if not is_legal_header_name(self._name):
-            raise ValueError(
+            error_message = (
                 f"HTTP header authentication provider received invalid "
                 f"header name: {self._name!r}. Please remove illegal "
                 f"characters and try again."
             )
+            raise ValueError(error_message)
 
         if is_illegal_header_value(self._value):
-            raise ValueError(
+            error_message = (
                 f"HTTP header authentication provider received invalid "
                 f"header value: {self._value!r}. Please remove illegal "
                 f"characters and try again."
             )
+            raise ValueError(error_message)
 
     def __call__(self, request):
         request.headers[self._name] = self._value
@@ -95,18 +96,20 @@ class HTTPTokenAuth(requests.auth.AuthBase, AuthProvider):
         self._token = get_secret(token)
 
         if is_illegal_header_value(self._scheme):
-            raise ValueError(
+            error_message = (
                 f"HTTP token authentication provider received scheme that "
                 f"contains illegal characters: {self._scheme!r}. Please "
                 f"remove these characters and try again."
             )
+            raise ValueError(error_message)
 
         if is_illegal_header_value(self._token):
-            raise ValueError(
+            error_message = (
                 f"HTTP token authentication provider received token that "
                 f"contains illegal characters: {self._token!r}. Please "
                 f"remove these characters and try again."
             )
+            raise ValueError(error_message)
 
     def __call__(self, request):
         request.headers["Authorization"] = f"{self._scheme} {self._token}"

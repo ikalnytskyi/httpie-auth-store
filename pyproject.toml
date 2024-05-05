@@ -17,7 +17,6 @@ keyring = ">= 23.5"
 [tool.poetry.dev-dependencies]
 pytest = "^7.1"
 responses = "^0.20"
-mock = "^4.0"
 
 [tool.poetry.plugins."httpie.plugins.auth.v1"]
 credential-store = "httpie_credential_store:CredentialStoreAuthPlugin"
@@ -30,3 +29,13 @@ build-backend = "poetry.masonry.api"
 [tool.ruff]
 line-length = 100
 target-version = "py38"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["ANN", "D", "TRY", "S", "PTH", "PLR", "COM", "PT005", "ISC001", "INP001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["INP001"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["httpie_credential_store"]
