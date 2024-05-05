@@ -117,6 +117,4 @@ def test_secret_not_found(testkeychain):
     with pytest.raises(LookupError) as excinfo:
         testkeychain.get(name="testservice/testuser")
 
-    assert str(excinfo.value) == (
-        "password-store: no secret found: 'testservice/testuser'"
-    )
+    assert str(excinfo.value) == ("password-store: no secret found: 'testservice/testuser'")

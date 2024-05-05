@@ -55,8 +55,7 @@ def test_secret_not_found(testkeychain):
         assert testkeychain.get(service="testsvc", username="testuser")
 
     assert str(excinfo.value) == (
-        "No secret found for 'testsvc' service and 'testuser' username "
-        "in 'system' keychain."
+        "No secret found for 'testsvc' service and 'testuser' username " "in 'system' keychain."
     )
 
 

@@ -44,14 +44,11 @@ def test_secret_not_found(testkeychain, tmpdir):
         testkeychain.get(command=f"cat {secrettxt.strpath}")
 
     assert str(excinfo.value) == (
-        f"No secret found: Command 'cat {secrettxt.strpath}' returned "
-        f"non-zero exit status 1."
+        f"No secret found: Command 'cat {secrettxt.strpath}' returned " f"non-zero exit status 1."
     )
 
 
-@pytest.mark.parametrize(
-    ["args", "kwargs"], [pytest.param(["echo p@ss"], {}, id="args")]
-)
+@pytest.mark.parametrize(["args", "kwargs"], [pytest.param(["echo p@ss"], {}, id="args")])
 def test_keywords_only_arguments(testkeychain, args, kwargs):
     with pytest.raises(TypeError):
         testkeychain.get(*args, **kwargs)

@@ -303,9 +303,7 @@ def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_token_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmpdir
-):
+def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type, tmpdir):
     """The plugin retrieves secrets from keychain for HTTP token auth."""
 
     secrettxt = tmpdir.join("secret.txt")
@@ -360,9 +358,7 @@ def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_header_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmpdir
-):
+def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type, tmpdir):
     """The plugin retrieves secrets from keychain for HTTP header auth."""
 
     secrettxt = tmpdir.join("secret.txt")
@@ -429,9 +425,7 @@ def test_creds_auth_multiple_token_header(httpie_run, set_credentials, creds_aut
 
 
 @responses.activate
-def test_creds_auth_multiple_header_header(
-    httpie_run, set_credentials, creds_auth_type
-):
+def test_creds_auth_multiple_header_header(httpie_run, set_credentials, creds_auth_type):
     """The plugin supports usage of the same auth provider twice."""
 
     set_credentials(
@@ -632,9 +626,7 @@ def test_creds_auth_missing(
             "http://example.com/",
             id="no-protocol",
         ),
-        pytest.param(
-            r"example", "http://example.com/", "http://example.com/", id="part"
-        ),
+        pytest.param(r"example", "http://example.com/", "http://example.com/", id="part"),
         pytest.param(
             r"example.com",
             "http://example.com/foo/bar",
@@ -819,9 +811,7 @@ def test_creds_lookup_by_id(httpie_run, set_credentials):
 
 
 @responses.activate
-def test_creds_lookup_by_id_error(
-    httpie_run, set_credentials, httpie_stderr, creds_auth_type
-):
+def test_creds_lookup_by_id_error(httpie_run, set_credentials, httpie_stderr, creds_auth_type):
     """The plugin raises error if no credentials found."""
 
     set_credentials(
@@ -955,9 +945,7 @@ def test_creds_permissions_not_enough(
 
 
 @responses.activate
-def test_creds_auth_no_database(
-    httpie_run, credentials_file, httpie_stderr, creds_auth_type
-):
+def test_creds_auth_no_database(httpie_run, credentials_file, httpie_stderr, creds_auth_type):
     """The plugin raises error if credentials file does not exist."""
 
     httpie_run(["-A", creds_auth_type, "http://example.com"])

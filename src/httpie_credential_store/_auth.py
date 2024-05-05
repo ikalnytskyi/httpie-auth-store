@@ -119,9 +119,7 @@ class HTTPMultipleAuth(requests.auth.AuthBase, AuthProvider):
     name = "multiple"
 
     def __init__(self, *, providers):
-        self._providers = [
-            get_auth(provider.pop("provider"), **provider) for provider in providers
-        ]
+        self._providers = [get_auth(provider.pop("provider"), **provider) for provider in providers]
 
     def __call__(self, request):
         for provider in self._providers:
@@ -129,9 +127,7 @@ class HTTPMultipleAuth(requests.auth.AuthBase, AuthProvider):
         return request
 
 
-_PROVIDERS = {
-    provider_cls.name: provider_cls for provider_cls in AuthProvider.__subclasses__()
-}
+_PROVIDERS = {provider_cls.name: provider_cls for provider_cls in AuthProvider.__subclasses__()}
 
 
 def get_auth(provider, **kwargs):

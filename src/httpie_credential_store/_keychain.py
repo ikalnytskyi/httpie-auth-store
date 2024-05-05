@@ -64,10 +64,7 @@ class SystemKeychain(KeychainProvider):
         return secret
 
 
-_PROVIDERS = {
-    provider_cls.name: provider_cls
-    for provider_cls in KeychainProvider.__subclasses__()
-}
+_PROVIDERS = {provider_cls.name: provider_cls for provider_cls in KeychainProvider.__subclasses__()}
 
 
 def get_keychain(provider):
