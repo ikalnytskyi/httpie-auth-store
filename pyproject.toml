@@ -26,3 +26,7 @@ creds = "httpie_credential_store:CredsAuthPlugin"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
