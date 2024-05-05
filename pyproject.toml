@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "httpie-credential-store"
-version = "3.0.0"
+version = "3.1.0"
 description = "HTTPie: one auth to rule them all!"
 authors = ["Ihor Kalnytskyi <ihor@kalnytskyi.com>"]
 license = "MIT"
@@ -12,7 +12,7 @@ keywords = ["httpie", "credential", "store", "keychain", "plugin", "auth"]
 [tool.poetry.dependencies]
 python = "^3.8"
 httpie = "^3.1"
-keyring = "^23.5"
+keyring = ">= 23.5"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1"
