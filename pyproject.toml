@@ -10,7 +10,7 @@ repository = "https://github.com/ikalnytskyi/httpie-credential-store"
 keywords = ["httpie", "credential", "store", "keychain", "plugin", "auth"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 httpie = "^3.1"
 keyring = "^23.5"
 
