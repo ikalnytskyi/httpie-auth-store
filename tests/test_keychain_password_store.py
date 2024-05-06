@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -10,16 +11,12 @@ import textwrap
 import py
 import pytest
 
-_is_windows = sys.platform == "win32"
 _is_macos = sys.platform == "darwin"
 
 
-# On Windows, password-store is only supported through Cygwin. There's no much
-# sense even to try make these tests green on Windows because I doubt there
-# will ever be password-store users on that operating system.
 pytestmark = pytest.mark.skipif(
-    _is_windows,
-    reason="password-store is not supported on windows",
+    not shutil.which("pass"),
+    reason="password-store is not found",
 )
 
 
