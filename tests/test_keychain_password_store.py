@@ -1,6 +1,6 @@
 """Tests password-store keychain provider."""
 
-import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -8,7 +8,6 @@ import sys
 import tempfile
 import textwrap
 
-import py
 import pytest
 
 _is_macos = sys.platform == "darwin"
@@ -25,23 +24,23 @@ if _is_macos:
     # temporary directory and generate-key template pointed to a file in
     # temporary directory too, it complains about using too long names.  It's
     # not clear why 'gpg' complains about too long names, but it's clear that
-    # built-in 'tmpdir' fixture produces too long names. That's why on macOS we
-    # override 'tmpdir' fixture to return much shorter path to a temporary
+    # built-in 'tmp_path' fixture produces too long names. That's why on macOS we
+    # override 'tmp_path' fixture to return much shorter path to a temporary
     # directory.
     @pytest.fixture()
-    def tmpdir():
+    def tmp_path():
         with tempfile.TemporaryDirectory() as path:
-            yield py.path.local(path)
+            yield pathlib.Path(path)
 
 
 @pytest.fixture()
-def gpg_key_id(monkeypatch, tmpdir):
+def gpg_key_id(monkeypatch, tmp_path):
     """Return a Key ID of just generated GPG key."""
 
-    gpghome = tmpdir.join(".gnupg")
-    gpgtemplate = tmpdir.join("gpg-template")
+    gpghome = tmp_path.joinpath(".gnupg")
+    gpgtemplate = tmp_path.joinpath("gpg-template")
 
-    monkeypatch.setitem(os.environ, "GNUPGHOME", gpghome.strpath)
+    monkeypatch.setenv("GNUPGHOME", str(gpghome))
     gpgtemplate.write_text(
         textwrap.dedent(
             """
@@ -74,16 +73,12 @@ def gpg_key_id(monkeypatch, tmpdir):
 
 
 @pytest.fixture(autouse=True)
-def password_store_dir(monkeypatch, tmpdir):
+def password_store_dir(monkeypatch, tmp_path):
     """Set password-store home directory to a temporary one."""
 
-    passstore = tmpdir.join(".password-store")
-    monkeypatch.setitem(
-        os.environ,
-        "PASSWORD_STORE_DIR",
-        passstore.strpath,
-    )
-    return passstore.strpath
+    passstore = tmp_path.joinpath(".password-store")
+    monkeypatch.setenv("PASSWORD_STORE_DIR", str(passstore))
+    return passstore
 
 
 @pytest.fixture()

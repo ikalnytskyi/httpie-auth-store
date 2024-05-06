@@ -17,34 +17,34 @@ def testkeychain():
     return _keychain.ShellKeychain()
 
 
-def test_secret_retrieved(testkeychain, tmpdir):
+def test_secret_retrieved(testkeychain, tmp_path):
     """The keychain returns stored secret, no bullshit."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("p@ss", encoding="UTF-8")
-    assert testkeychain.get(command=f"cat {secrettxt.strpath}") == "p@ss"
+    assert testkeychain.get(command=f"cat {secrettxt}") == "p@ss"
 
 
-def test_secret_retrieved_pipe(testkeychain, tmpdir):
+def test_secret_retrieved_pipe(testkeychain, tmp_path):
     """The keychain returns stored secret even when pipes are used."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("p@ss\nextra", encoding="UTF-8")
 
-    command = rf"cat {secrettxt.strpath} | head -n 1 | tr -d {os.linesep!r}"
+    command = rf"cat {secrettxt} | head -n 1 | tr -d {os.linesep!r}"
     assert testkeychain.get(command=command) == "p@ss"
 
 
-def test_secret_not_found(testkeychain, tmpdir):
+def test_secret_not_found(testkeychain, tmp_path):
     """LookupError is raised when no secrets are found in the keychain."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
 
     with pytest.raises(LookupError) as excinfo:
-        testkeychain.get(command=f"cat {secrettxt.strpath}")
+        testkeychain.get(command=f"cat {secrettxt}")
 
     assert str(excinfo.value) == (
-        f"No secret found: Command 'cat {secrettxt.strpath}' returned non-zero exit status 1."
+        f"No secret found: Command 'cat {secrettxt}' returned non-zero exit status 1."
     )
 
 

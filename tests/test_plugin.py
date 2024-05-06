@@ -3,7 +3,6 @@
 import io
 import json
 import os
-import pathlib
 import re
 import sys
 from urllib.request import parse_http_list, parse_keqv_list
@@ -49,7 +48,7 @@ def httpie_config_dir(_httpie_config_dir):
     # Since we cannot use new directory for HTTPie configuration for every test
     # (see reasons in `_httpie_config_dir` fixture), we must at least ensure
     # that there's no side effect between tests by emptying the directory.
-    for path in pathlib.Path(_httpie_config_dir).iterdir():
+    for path in _httpie_config_dir.iterdir():
         path.unlink()
 
 
@@ -156,10 +155,10 @@ def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type, tmpdir):
+def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP basic auth."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("p@ss", encoding="UTF-8")
 
     set_credentials(
@@ -171,7 +170,7 @@ def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type,
                     "username": "user",
                     "password": {
                         "keychain": "shell",
-                        "command": f"cat {secrettxt.strpath}",
+                        "command": f"cat {secrettxt}",
                     },
                 },
             }
@@ -296,10 +295,10 @@ def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type, tmpdir):
+def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP token auth."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("token-can-be-anything", encoding="UTF-8")
 
     set_credentials(
@@ -310,7 +309,7 @@ def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type,
                     "provider": "token",
                     "token": {
                         "keychain": "shell",
-                        "command": f"cat {secrettxt.strpath}",
+                        "command": f"cat {secrettxt}",
                     },
                 },
             }
@@ -351,10 +350,10 @@ def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type, tmpdir):
+def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP header auth."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("value-can-be-anything", encoding="UTF-8")
 
     set_credentials(
@@ -366,7 +365,7 @@ def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type
                     "name": "X-Auth",
                     "value": {
                         "keychain": "shell",
-                        "command": f"cat {secrettxt.strpath}",
+                        "command": f"cat {secrettxt}",
                     },
                 },
             }
@@ -455,11 +454,11 @@ def test_creds_auth_multiple_header_header(httpie_run, set_credentials, creds_au
 
 @responses.activate
 def test_creds_auth_multiple_token_header_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmpdir
+    httpie_run, set_credentials, creds_auth_type, tmp_path
 ):
     """The plugin retrieves secrets from keychains for combination of auths."""
 
-    tokentxt, secrettxt = tmpdir.join("token.txt"), tmpdir.join("secret.txt")
+    tokentxt, secrettxt = tmp_path.joinpath("token.txt"), tmp_path.joinpath("secret.txt")
     tokentxt.write_text("token-can-be-anything", encoding="UTF-8")
     secrettxt.write_text("secret-can-be-anything", encoding="UTF-8")
 
@@ -474,7 +473,7 @@ def test_creds_auth_multiple_token_header_keychain(
                             "provider": "token",
                             "token": {
                                 "keychain": "shell",
-                                "command": f"cat {tokentxt.strpath}",
+                                "command": f"cat {tokentxt}",
                             },
                             "scheme": "JWT",
                         },
@@ -483,7 +482,7 @@ def test_creds_auth_multiple_token_header_keychain(
                             "name": "X-Auth",
                             "value": {
                                 "keychain": "shell",
-                                "command": f"cat {secrettxt.strpath}",
+                                "command": f"cat {secrettxt}",
                             },
                         },
                     ],
