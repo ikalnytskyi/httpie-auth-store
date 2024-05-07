@@ -26,7 +26,7 @@ class ShellKeychain(KeychainProvider):
 
     def get(self, *, command):
         try:
-            return subprocess.check_output(command, shell=True).decode("UTF-8")
+            return subprocess.check_output(command, shell=True, text=True)
         except subprocess.CalledProcessError as exc:
             error_message = f"No secret found: {exc}"
             raise LookupError(error_message) from exc
@@ -41,9 +41,9 @@ class PasswordStoreKeychain(ShellKeychain):
         try:
             # password-store may store securely extra information along with a
             # password. Nevertheless, a password is always a first line.
-            text = super().get(command=f"pass {name}")
+            text = subprocess.check_output(["pass", name], text=True)
             return text.splitlines()[0]
-        except LookupError as exc:
+        except subprocess.CalledProcessError as exc:
             error_message = f"password-store: no secret found: '{name}'"
             raise LookupError(error_message) from exc
 
