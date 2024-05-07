@@ -97,17 +97,16 @@ def testkeychain():
 def test_secret_retrieved(testkeychain, gpg_key_id):
     """The keychain returns stored secret, no bullshit."""
 
-    subprocess.run(f"pass init {gpg_key_id}", shell=True, check=False)
-    subprocess.run("pass generate testservice/testuser 14", shell=True, check=False)
+    subprocess.run(["pass", "init", gpg_key_id], check=True)
+    subprocess.run(["pass", "insert", "--echo", "service/user"], input=b"f00b@r", check=True)
 
-    secret = testkeychain.get(name="testservice/testuser")
-    assert len(secret) == 14
+    assert testkeychain.get(name="service/user") == "f00b@r"
 
 
 def test_secret_not_found(testkeychain):
     """LookupError is raised when no secrets are found in the keychain."""
 
     with pytest.raises(LookupError) as excinfo:
-        testkeychain.get(name="testservice/testuser")
+        testkeychain.get(name="service/user")
 
-    assert str(excinfo.value) == "password-store: no secret found: 'testservice/testuser'"
+    assert str(excinfo.value) == "password-store: no secret found: 'service/user'"
