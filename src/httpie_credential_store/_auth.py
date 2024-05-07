@@ -8,6 +8,7 @@ import requests.auth
 
 from ._keychain import get_keychain
 
+
 # These patterns are copied over from built-in `http.client` implementation,
 # and are more lenient than RFC definitions for backwards compatibility
 # reasons.

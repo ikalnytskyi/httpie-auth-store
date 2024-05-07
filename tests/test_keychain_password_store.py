@@ -10,6 +10,7 @@ import textwrap
 
 import pytest
 
+
 _is_macos = sys.platform == "darwin"
 
 

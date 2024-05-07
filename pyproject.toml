@@ -39,3 +39,5 @@ ignore = ["ANN", "D", "TRY", "S", "PTH", "PLR", "COM", "PT005", "ISC001", "INP00
 
 [tool.ruff.lint.isort]
 known-first-party = ["httpie_credential_store"]
+lines-after-imports = 2
+lines-between-types = 1

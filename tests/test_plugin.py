@@ -5,10 +5,12 @@ import json
 import os
 import re
 import sys
+
 from urllib.request import parse_http_list, parse_keqv_list
 
 import pytest
 import responses
+
 
 _is_windows = sys.platform == "win32"
 
