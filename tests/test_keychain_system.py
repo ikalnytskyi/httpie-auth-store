@@ -19,7 +19,7 @@ class _InmemoryKeyring(keyring.backend.KeyringBackend):
         self._keyring[(service, username)] = password
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def keyring_backend():
     """Temporary set in-memory keyring as current backend."""
 
@@ -29,7 +29,7 @@ def keyring_backend():
     keyring.set_keyring(prev_backend)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def testkeychain():
     """Keychain instance under test."""
 
@@ -55,13 +55,12 @@ def test_secret_not_found(testkeychain):
         assert testkeychain.get(service="testsvc", username="testuser")
 
     assert str(excinfo.value) == (
-        "No secret found for 'testsvc' service and 'testuser' username "
-        "in 'system' keychain."
+        "No secret found for 'testsvc' service and 'testuser' username in 'system' keychain."
     )
 
 
 @pytest.mark.parametrize(
-    ["args", "kwargs"],
+    ("args", "kwargs"),
     [
         pytest.param(["testsvc", "testuser"], {}, id="args"),
         pytest.param(["testsvc"], {"username": "testuser"}, id="args-kwargs"),

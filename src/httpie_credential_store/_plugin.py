@@ -1,7 +1,7 @@
 """HTTPie Credential Store Auth Plugin."""
 
-import requests
 import httpie.plugins
+import requests
 
 from ._store import get_credential_store
 
@@ -23,6 +23,8 @@ class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
     auth_parse = False  # do not parse '-a' content
 
     def get_auth(self, username=None, password=None):
+        _ = username
+        _ = password
         credential_id = self.raw_auth
 
         class CredentialStoreAuth(requests.auth.AuthBase):

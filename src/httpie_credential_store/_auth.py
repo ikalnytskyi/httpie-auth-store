@@ -45,7 +45,7 @@ class HTTPBasicAuth(requests.auth.HTTPBasicAuth, AuthProvider):
     name = "basic"
 
     def __init__(self, *, username, password):
-        super(HTTPBasicAuth, self).__init__(username, get_secret(password))
+        super().__init__(username, get_secret(password))
 
 
 class HTTPDigestAuth(requests.auth.HTTPDigestAuth, AuthProvider):
@@ -54,7 +54,7 @@ class HTTPDigestAuth(requests.auth.HTTPDigestAuth, AuthProvider):
     name = "digest"
 
     def __init__(self, *, username, password):
-        super(HTTPDigestAuth, self).__init__(username, get_secret(password))
+        super().__init__(username, get_secret(password))
 
 
 class HTTPHeaderAuth(requests.auth.AuthBase, AuthProvider):
@@ -67,18 +67,20 @@ class HTTPHeaderAuth(requests.auth.AuthBase, AuthProvider):
         self._value = get_secret(value)
 
         if not is_legal_header_name(self._name):
-            raise ValueError(
+            error_message = (
                 f"HTTP header authentication provider received invalid "
                 f"header name: {self._name!r}. Please remove illegal "
                 f"characters and try again."
             )
+            raise ValueError(error_message)
 
         if is_illegal_header_value(self._value):
-            raise ValueError(
+            error_message = (
                 f"HTTP header authentication provider received invalid "
                 f"header value: {self._value!r}. Please remove illegal "
                 f"characters and try again."
             )
+            raise ValueError(error_message)
 
     def __call__(self, request):
         request.headers[self._name] = self._value
@@ -95,18 +97,20 @@ class HTTPTokenAuth(requests.auth.AuthBase, AuthProvider):
         self._token = get_secret(token)
 
         if is_illegal_header_value(self._scheme):
-            raise ValueError(
+            error_message = (
                 f"HTTP token authentication provider received scheme that "
                 f"contains illegal characters: {self._scheme!r}. Please "
                 f"remove these characters and try again."
             )
+            raise ValueError(error_message)
 
         if is_illegal_header_value(self._token):
-            raise ValueError(
+            error_message = (
                 f"HTTP token authentication provider received token that "
                 f"contains illegal characters: {self._token!r}. Please "
                 f"remove these characters and try again."
             )
+            raise ValueError(error_message)
 
     def __call__(self, request):
         request.headers["Authorization"] = f"{self._scheme} {self._token}"
@@ -119,9 +123,7 @@ class HTTPMultipleAuth(requests.auth.AuthBase, AuthProvider):
     name = "multiple"
 
     def __init__(self, *, providers):
-        self._providers = [
-            get_auth(provider.pop("provider"), **provider) for provider in providers
-        ]
+        self._providers = [get_auth(provider.pop("provider"), **provider) for provider in providers]
 
     def __call__(self, request):
         for provider in self._providers:
@@ -129,9 +131,7 @@ class HTTPMultipleAuth(requests.auth.AuthBase, AuthProvider):
         return request
 
 
-_PROVIDERS = {
-    provider_cls.name: provider_cls for provider_cls in AuthProvider.__subclasses__()
-}
+_PROVIDERS = {provider_cls.name: provider_cls for provider_cls in AuthProvider.__subclasses__()}
 
 
 def get_auth(provider, **kwargs):

@@ -3,7 +3,6 @@
 import io
 import json
 import os
-import pathlib
 import re
 import sys
 
@@ -16,7 +15,7 @@ import responses
 _is_windows = sys.platform == "win32"
 
 
-class _DigestAuthHeader(object):
+class _DigestAuthHeader:
     """Assert that a given Authorization header has expected digest parameters."""
 
     def __init__(self, parameters):
@@ -29,7 +28,7 @@ class _DigestAuthHeader(object):
         return True
 
 
-class _RegExp(object):
+class _RegExp:
     """Assert that a given string meets some expectations."""
 
     def __init__(self, pattern, flags=0):
@@ -42,7 +41,7 @@ class _RegExp(object):
         return self._regex.pattern
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def httpie_config_dir(_httpie_config_dir):
     """Return a path to HTTPie configuration directory."""
 
@@ -51,37 +50,37 @@ def httpie_config_dir(_httpie_config_dir):
     # Since we cannot use new directory for HTTPie configuration for every test
     # (see reasons in `_httpie_config_dir` fixture), we must at least ensure
     # that there's no side effect between tests by emptying the directory.
-    for path in pathlib.Path(_httpie_config_dir).iterdir():
+    for path in _httpie_config_dir.iterdir():
         path.unlink()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def credentials_file(httpie_config_dir):
     """Return a path to credentials file."""
 
     return os.path.join(httpie_config_dir, "credentials.json")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def set_credentials(credentials_file):
     """Render given credentials to credentials.json."""
 
     def render(credentials, mode=0o600):
-        with io.open(credentials_file, "wt", encoding="UTF-8") as f:
+        with open(credentials_file, "w", encoding="UTF-8") as f:
             f.write(json.dumps(credentials, indent=4))
         os.chmod(credentials_file, mode)
 
     return render
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def httpie_stderr():
     """Return captured standard error stream of HTTPie."""
 
     return io.StringIO()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 def httpie_run(httpie_stderr):
     """Run HTTPie from within this process."""
 
@@ -89,17 +88,17 @@ def httpie_run(httpie_stderr):
         # Imports of HTTPie internals must be local because otherwise they
         # won't take into account patched HTTPIE_CONFIG_DIR environment
         # variable.
-        import httpie.core
         import httpie.context
+        import httpie.core
 
-        args = ["http", "--ignore-stdin"] + args
+        args = ["http", "--ignore-stdin", *args]
         env = httpie.context.Environment(stderr=httpie_stderr)
         return httpie.core.main(args, env=env)
 
     return main
 
 
-@pytest.fixture(scope="function", params=["credential-store", "creds"])
+@pytest.fixture(params=["credential-store", "creds"])
 def creds_auth_type(request):
     """All possible aliases."""
 
@@ -133,7 +132,7 @@ def test_creds_auth_deactivated_by_default(httpie_run):
 
 
 @responses.activate
-def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type, httpie_stderr):
+def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
     """The plugin works for HTTP basic auth."""
 
     set_credentials(
@@ -158,12 +157,10 @@ def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type, httpie_s
 
 
 @responses.activate
-def test_creds_auth_basic_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmpdir, httpie_stderr
-):
+def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP basic auth."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("p@ss", encoding="UTF-8")
 
     set_credentials(
@@ -175,7 +172,7 @@ def test_creds_auth_basic_keychain(
                     "username": "user",
                     "password": {
                         "keychain": "shell",
-                        "command": f"cat {secrettxt.strpath}",
+                        "command": f"cat {secrettxt}",
                     },
                 },
             }
@@ -199,14 +196,11 @@ def test_creds_auth_digest(httpie_run, set_credentials, creds_auth_type):
         "http://example.com",
         status=401,
         headers={
-            "WWW-Authenticate": "Digest "
-            + ",".join(
-                [
-                    "realm=auth.example.com",
-                    'qop="auth,auth-int"',
-                    "nonce=dcd98b7102dd2f0e8b11d0f600bfb0c093",
-                    "opaque=5ccc069c403ebaf9f0171e9517f40e41",
-                ]
+            "WWW-Authenticate": (
+                "Digest realm=auth.example.com"
+                ',qop="auth,auth-int"'
+                ",nonce=dcd98b7102dd2f0e8b11d0f600bfb0c093"
+                ",opaque=5ccc069c403ebaf9f0171e9517f40e41"
             )
         },
     )
@@ -303,12 +297,10 @@ def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_token_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmpdir
-):
+def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP token auth."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("token-can-be-anything", encoding="UTF-8")
 
     set_credentials(
@@ -319,7 +311,7 @@ def test_creds_auth_token_keychain(
                     "provider": "token",
                     "token": {
                         "keychain": "shell",
-                        "command": f"cat {secrettxt.strpath}",
+                        "command": f"cat {secrettxt}",
                     },
                 },
             }
@@ -360,12 +352,10 @@ def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_header_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmpdir
-):
+def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP header auth."""
 
-    secrettxt = tmpdir.join("secret.txt")
+    secrettxt = tmp_path.joinpath("secret.txt")
     secrettxt.write_text("value-can-be-anything", encoding="UTF-8")
 
     set_credentials(
@@ -377,7 +367,7 @@ def test_creds_auth_header_keychain(
                     "name": "X-Auth",
                     "value": {
                         "keychain": "shell",
-                        "command": f"cat {secrettxt.strpath}",
+                        "command": f"cat {secrettxt}",
                     },
                 },
             }
@@ -429,9 +419,7 @@ def test_creds_auth_multiple_token_header(httpie_run, set_credentials, creds_aut
 
 
 @responses.activate
-def test_creds_auth_multiple_header_header(
-    httpie_run, set_credentials, creds_auth_type
-):
+def test_creds_auth_multiple_header_header(httpie_run, set_credentials, creds_auth_type):
     """The plugin supports usage of the same auth provider twice."""
 
     set_credentials(
@@ -468,11 +456,11 @@ def test_creds_auth_multiple_header_header(
 
 @responses.activate
 def test_creds_auth_multiple_token_header_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmpdir
+    httpie_run, set_credentials, creds_auth_type, tmp_path
 ):
     """The plugin retrieves secrets from keychains for combination of auths."""
 
-    tokentxt, secrettxt = tmpdir.join("token.txt"), tmpdir.join("secret.txt")
+    tokentxt, secrettxt = tmp_path.joinpath("token.txt"), tmp_path.joinpath("secret.txt")
     tokentxt.write_text("token-can-be-anything", encoding="UTF-8")
     secrettxt.write_text("secret-can-be-anything", encoding="UTF-8")
 
@@ -487,7 +475,7 @@ def test_creds_auth_multiple_token_header_keychain(
                             "provider": "token",
                             "token": {
                                 "keychain": "shell",
-                                "command": f"cat {tokentxt.strpath}",
+                                "command": f"cat {tokentxt}",
                             },
                             "scheme": "JWT",
                         },
@@ -496,7 +484,7 @@ def test_creds_auth_multiple_token_header_keychain(
                             "name": "X-Auth",
                             "value": {
                                 "keychain": "shell",
-                                "command": f"cat {secrettxt.strpath}",
+                                "command": f"cat {secrettxt}",
                             },
                         },
                     ],
@@ -516,7 +504,7 @@ def test_creds_auth_multiple_token_header_keychain(
 
 @responses.activate
 @pytest.mark.parametrize(
-    ["auth", "error_pattern"],
+    ("auth", "error_pattern"),
     [
         pytest.param(
             {"provider": "basic"},
@@ -600,7 +588,7 @@ def test_creds_auth_missing(
 
 @responses.activate
 @pytest.mark.parametrize(
-    ["regexp", "url", "normalized_url"],
+    ("regexp", "url", "normalized_url"),
     [
         pytest.param(
             r"http://example.com/",
@@ -632,9 +620,7 @@ def test_creds_auth_missing(
             "http://example.com/",
             id="no-protocol",
         ),
-        pytest.param(
-            r"example", "http://example.com/", "http://example.com/", id="part"
-        ),
+        pytest.param(r"example", "http://example.com/", "http://example.com/", id="part"),
         pytest.param(
             r"example.com",
             "http://example.com/foo/bar",
@@ -753,7 +739,7 @@ def test_creds_lookup_many_credentials(httpie_run, set_credentials, creds_auth_t
 
 @responses.activate
 @pytest.mark.parametrize(
-    ["regexp", "url"],
+    ("regexp", "url"),
     [
         pytest.param(r"http://example.com/", "https://example.com/", id="http-https"),
         pytest.param(r"https://example.com", "http://example.com/", id="https-http"),
@@ -819,9 +805,7 @@ def test_creds_lookup_by_id(httpie_run, set_credentials):
 
 
 @responses.activate
-def test_creds_lookup_by_id_error(
-    httpie_run, set_credentials, httpie_stderr, creds_auth_type
-):
+def test_creds_lookup_by_id_error(httpie_run, set_credentials, httpie_stderr, creds_auth_type):
     """The plugin raises error if no credentials found."""
 
     set_credentials(
@@ -850,7 +834,7 @@ def test_creds_lookup_by_id_error(
 @responses.activate
 @pytest.mark.skipif(_is_windows, reason="no support for permissions on windows")
 @pytest.mark.parametrize(
-    ["mode"],
+    "mode",
     [
         pytest.param(0o700, id="0700"),
         pytest.param(0o600, id="0600"),
@@ -886,7 +870,7 @@ def test_creds_permissions_safe(httpie_run, set_credentials, mode, creds_auth_ty
 @responses.activate
 @pytest.mark.skipif(_is_windows, reason="no support for permissions on windows")
 @pytest.mark.parametrize(
-    ["mode"],
+    "mode",
     [
         pytest.param(0o607, id="0607"),
         pytest.param(0o606, id="0606"),
@@ -927,7 +911,7 @@ def test_creds_permissions_unsafe(
 @responses.activate
 @pytest.mark.skipif(_is_windows, reason="no support for permissions on windows")
 @pytest.mark.parametrize(
-    ["mode"],
+    "mode",
     [
         pytest.param(0o300, id="0300"),
         pytest.param(0o200, id="0200"),
@@ -955,9 +939,7 @@ def test_creds_permissions_not_enough(
 
 
 @responses.activate
-def test_creds_auth_no_database(
-    httpie_run, credentials_file, httpie_stderr, creds_auth_type
-):
+def test_creds_auth_no_database(httpie_run, credentials_file, httpie_stderr, creds_auth_type):
     """The plugin raises error if credentials file does not exist."""
 
     httpie_run(["-A", creds_auth_type, "http://example.com"])
@@ -971,7 +953,7 @@ def test_creds_auth_no_database(
 
 @responses.activate
 @pytest.mark.parametrize(
-    ["auth", "error"],
+    ("auth", "error"),
     [
         pytest.param(
             {"provider": "header", "name": "X-Auth", "value": "p@ss\n"},
@@ -1008,7 +990,7 @@ def test_creds_auth_header_value_illegal_characters(
 
 @responses.activate
 @pytest.mark.parametrize(
-    ["auth", "error"],
+    ("auth", "error"),
     [
         pytest.param(
             {"provider": "header", "name": "X-Auth\n", "value": "p@ss"},

@@ -11,27 +11,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set up sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Run ruff
         run: pipx run tox -e lint
+        env:
+          RUFF_OUTPUT_FORMAT: github
 
   test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        include:
+          - os: macos-latest
+            python-version: "3.12"
+          - os: windows-latest
+            python-version: "3.12"
 
     runs-on: ${{ matrix.os }}
     steps:
       - name: Set up sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -44,4 +53,4 @@ jobs:
         if: matrix.os == 'macos-latest'
 
       - name: Run pytest
-        run: pipx run tox -e py3
+        run: pipx run tox -e test

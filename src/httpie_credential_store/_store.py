@@ -1,6 +1,5 @@
 """Credentials are managed here."""
 
-import io
 import json
 import os
 import re
@@ -12,7 +11,7 @@ import httpie.config
 from ._auth import get_auth
 
 
-class CredentialStore(object):
+class CredentialStore:
     """Credential store, manages your credentials."""
 
     def __init__(self, credentials):
@@ -42,10 +41,11 @@ def get_credential_store(name, directory=httpie.config.DEFAULT_CONFIG_DIR):
     credential_file = os.path.join(directory, name)
 
     if not os.path.exists(credential_file):
-        raise FileNotFoundError(
+        error_message = (
             f"Credentials file '{credential_file}' is not found; "
             f"please create one and try again."
         )
+        raise FileNotFoundError(error_message)
 
     mode = stat.S_IMODE(os.stat(credential_file).st_mode)
 
@@ -56,20 +56,22 @@ def get_credential_store(name, directory=httpie.config.DEFAULT_CONFIG_DIR):
     # ignore this platform for a while.
     if sys.platform != "win32":
         if mode & 0o077 > 0o000:
-            raise PermissionError(
+            error_message = (
                 f"Permissions '{mode:04o}' for '{credential_file}' are too "
                 f"open; please ensure your credentials file is NOT accessible "
                 f"by others."
             )
+            raise PermissionError(error_message)
 
         if mode & 0o400 != 0o400:
-            raise PermissionError(
+            error_message = (
                 f"Permissions '{mode:04o}' for '{credential_file}' are too "
                 f"close; please ensure your credentials file CAN be read by "
                 f"you."
             )
+            raise PermissionError(error_message)
 
-    with io.open(credential_file, encoding="UTF-8") as f:
+    with open(credential_file, encoding="UTF-8") as f:
         credentials = json.load(f)
 
     return CredentialStore(credentials)
