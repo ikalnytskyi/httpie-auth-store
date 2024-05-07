@@ -42,10 +42,11 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["ANN", "D", "TRY", "S", "PTH", "PLR", "COM", "PT005", "ISC001", "INP001"]
+ignore = ["ANN", "D", "PTH", "PLR", "PT005", "ISC001", "INP001", "S603", "S607", "COM812"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["INP001"]
+"src/httpie_credential_store/_keychain.py" = ["S602"]
+"tests/*" = ["S101", "INP001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["httpie_credential_store"]

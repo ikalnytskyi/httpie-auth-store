@@ -57,14 +57,8 @@ def gpg_key_id(monkeypatch, tmp_path):
         encoding="UTF-8",
     )
 
-    subprocess.check_output(
-        f"gpg --batch --generate-key {gpgtemplate}",
-        shell=True,
-        stderr=subprocess.STDOUT,
-    )
-    keys = subprocess.check_output(
-        "gpg --list-secret-keys", shell=True, stderr=subprocess.STDOUT
-    ).decode("UTF-8")
+    subprocess.check_call(["gpg", "--batch", "--generate-key", gpgtemplate])
+    keys = subprocess.check_output(["gpg", "--list-secret-keys"], text=True)
 
     key = re.search(r"\s+([0-9A-F]{40})\s+", keys)
     if not key:
@@ -97,7 +91,7 @@ def testkeychain():
 def test_secret_retrieved(testkeychain, gpg_key_id):
     """The keychain returns stored secret, no bullshit."""
 
-    subprocess.run(["pass", "init", gpg_key_id], check=True)
+    subprocess.check_call(["pass", "init", gpg_key_id])
     subprocess.run(["pass", "insert", "--echo", "service/user"], input=b"f00b@r", check=True)
 
     assert testkeychain.get(name="service/user") == "f00b@r"
