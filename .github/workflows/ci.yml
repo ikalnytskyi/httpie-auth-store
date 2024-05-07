@@ -20,6 +20,8 @@ jobs:
 
       - name: Run ruff
         run: pipx run tox -e lint
+        env:
+          RUFF_OUTPUT_FORMAT: github
 
   test:
     strategy:
