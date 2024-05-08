@@ -248,6 +248,134 @@ def test_store_auth_digest(httpie_run: HttpieRunT, store_set: StoreSetT) -> None
 
 
 @responses.activate
+def test_store_auth_digest_keychain(
+    httpie_run: HttpieRunT,
+    store_set: StoreSetT,
+    tmp_path: pathlib.Path,
+) -> None:
+    """The plugin works for HTTP digest auth."""
+
+    secrettxt = tmp_path.joinpath("secret.txt")
+    secrettxt.write_text("p@ss", encoding="UTF-8")
+
+    responses.add(
+        responses.GET,
+        "http://example.com",
+        status=401,
+        headers={
+            "WWW-Authenticate": (
+                "Digest realm=auth.example.com"
+                ',qop="auth,auth-int"'
+                ",nonce=dcd98b7102dd2f0e8b11d0f600bfb0c093"
+                ",opaque=5ccc069c403ebaf9f0171e9517f40e41"
+            )
+        },
+    )
+
+    store_set(
+        [
+            {
+                "url": "http://example.com",
+                "auth": {
+                    "provider": "digest",
+                    "username": "user",
+                    "password": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt}",
+                    },
+                },
+            }
+        ]
+    )
+    httpie_run(["-A", "store", "http://example.com"])
+
+    assert len(responses.calls) == 2
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert "Authorization" not in request.headers
+
+    request = responses.calls[1].request
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == _DigestAuthHeader(
+        {
+            "username": "user",
+            "realm": "auth.example.com",
+            "nonce": "dcd98b7102dd2f0e8b11d0f600bfb0c093",
+            "uri": "/",
+            "opaque": "5ccc069c403ebaf9f0171e9517f40e41",
+            "qop": "auth",
+            "nc": "00000001",
+            # Both 'response' and 'cnonce' are time-based, thus there's no
+            # reliable way to check their values without mocking time module.
+            # Since we do not test here produced "digest", but ensure a proper
+            # auth method is used, checking these values using regular
+            # expression should be enough.
+            "response": _RegExp(r"^[0-9a-fA-F]{32}$"),
+            "cnonce": _RegExp(r"^[0-9a-fA-F]{16}$"),
+        }
+    )
+
+
+@responses.activate
+def test_store_auth_bearer(httpie_run: HttpieRunT, store_set: StoreSetT) -> None:
+    """The plugin works for HTTP token auth."""
+
+    store_set(
+        [
+            {
+                "url": "http://example.com",
+                "auth": {
+                    "provider": "bearer",
+                    "auth": "token-can-be-anything",
+                },
+            }
+        ]
+    )
+    httpie_run(["-A", "store", "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "Bearer token-can-be-anything"
+
+
+@responses.activate
+def test_store_auth_bearer_keychain(
+    httpie_run: HttpieRunT,
+    store_set: StoreSetT,
+    tmp_path: pathlib.Path,
+) -> None:
+    """The plugin retrieves secrets from keychain for HTTP token auth."""
+
+    secrettxt = tmp_path.joinpath("secret.txt")
+    secrettxt.write_text("token-can-be-anything", encoding="UTF-8")
+
+    store_set(
+        [
+            {
+                "url": "http://example.com",
+                "auth": {
+                    "provider": "bearer",
+                    "auth": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt}",
+                    },
+                },
+            }
+        ]
+    )
+    httpie_run(["-A", "store", "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "Bearer token-can-be-anything"
+
+
+@responses.activate
 def test_store_auth_token(httpie_run: HttpieRunT, store_set: StoreSetT) -> None:
     """The plugin works for HTTP token auth."""
 

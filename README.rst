@@ -158,24 +158,22 @@ where
 * ``password`` is a password of the authenticating user
 
 
-``token``
-.........
+``bearer``
+..........
 
-The 'Token' HTTP authentication scheme (also called 'Bearer') transmits
-token in the ``Authorization`` HTTP header.
+The 'Bearer' HTTP authentication scheme transmits token in the
+``Authorization`` HTTP header.
 
 .. code:: json
 
    {
      "provider": "token",
-     "token": "t0k3n",
-     "scheme": "JWT"
+     "auth": "t0k3n"
    }
 
 where
 
-* ``token`` is a token of the authenticating user
-* ``scheme`` (optional, default: "Bearer") is an authenticating scheme
+* ``auth`` is a token of the authenticating user
 
 
 ``header``
