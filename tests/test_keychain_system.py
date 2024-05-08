@@ -7,9 +7,7 @@ import keyring.backend
 import keyring.compat
 import pytest
 
-
-if typing.TYPE_CHECKING:
-    from httpie_credential_store._keychain import SystemKeychain
+from httpie_credential_store._keychain import SystemKeychain
 
 
 class _InmemoryKeyring(keyring.backend.KeyringBackend):
@@ -40,19 +38,14 @@ def keyring_backend() -> typing.Generator[keyring.backend.KeyringBackend, None, 
 
 
 @pytest.fixture()
-def testkeychain() -> "SystemKeychain":
+def testkeychain() -> SystemKeychain:
     """Keychain instance under test."""
 
-    # For the same reasons as in tests/test_plugin.py, all imports that trigger
-    # HTTPie importing must be postponed till one of our fixtures is evaluated
-    # and patched a path to HTTPie configuration.
-    from httpie_credential_store import _keychain
-
-    return _keychain.SystemKeychain()
+    return SystemKeychain()
 
 
 def test_secret_retrieved(
-    testkeychain: "SystemKeychain",
+    testkeychain: SystemKeychain,
     keyring_backend: keyring.backend.KeyringBackend,
 ) -> None:
     """The keychain returns stored secret, no bullshit."""
@@ -61,7 +54,7 @@ def test_secret_retrieved(
     assert testkeychain.get(service="testsvc", username="testuser") == "p@ss"
 
 
-def test_secret_not_found(testkeychain: "SystemKeychain") -> None:
+def test_secret_not_found(testkeychain: SystemKeychain) -> None:
     """LookupError is raised when no secrets are found in the keychain."""
 
     with pytest.raises(LookupError) as excinfo:
@@ -80,7 +73,7 @@ def test_secret_not_found(testkeychain: "SystemKeychain") -> None:
     ],
 )
 def test_keywords_only_arguments(
-    testkeychain: "SystemKeychain",
+    testkeychain: SystemKeychain,
     keyring_backend: keyring.backend.KeyringBackend,
     args: typing.List[str],
     kwargs: typing.Mapping[str, str],

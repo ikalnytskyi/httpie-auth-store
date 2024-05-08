@@ -6,24 +6,17 @@ import typing
 
 import pytest
 
-
-if typing.TYPE_CHECKING:
-    from httpie_credential_store._keychain import ShellKeychain
+from httpie_credential_store._keychain import ShellKeychain
 
 
 @pytest.fixture()
-def testkeychain() -> "ShellKeychain":
+def testkeychain() -> ShellKeychain:
     """Keychain instance under test."""
 
-    # For the same reasons as in tests/test_plugin.py, all imports that trigger
-    # HTTPie importing must be postponed till one of our fixtures is evaluated
-    # and patched a path to HTTPie configuration.
-    from httpie_credential_store import _keychain
-
-    return _keychain.ShellKeychain()
+    return ShellKeychain()
 
 
-def test_secret_retrieved(testkeychain: "ShellKeychain", tmp_path: pathlib.Path) -> None:
+def test_secret_retrieved(testkeychain: ShellKeychain, tmp_path: pathlib.Path) -> None:
     """The keychain returns stored secret, no bullshit."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -31,7 +24,7 @@ def test_secret_retrieved(testkeychain: "ShellKeychain", tmp_path: pathlib.Path)
     assert testkeychain.get(command=f"cat {secrettxt}") == "p@ss"
 
 
-def test_secret_retrieved_pipe(testkeychain: "ShellKeychain", tmp_path: pathlib.Path) -> None:
+def test_secret_retrieved_pipe(testkeychain: ShellKeychain, tmp_path: pathlib.Path) -> None:
     """The keychain returns stored secret even when pipes are used."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -41,7 +34,7 @@ def test_secret_retrieved_pipe(testkeychain: "ShellKeychain", tmp_path: pathlib.
     assert testkeychain.get(command=command) == "p@ss"
 
 
-def test_secret_not_found(testkeychain: "ShellKeychain", tmp_path: pathlib.Path) -> None:
+def test_secret_not_found(testkeychain: ShellKeychain, tmp_path: pathlib.Path) -> None:
     """LookupError is raised when no secrets are found in the keychain."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -56,7 +49,7 @@ def test_secret_not_found(testkeychain: "ShellKeychain", tmp_path: pathlib.Path)
 
 @pytest.mark.parametrize(("args", "kwargs"), [pytest.param(["echo p@ss"], {}, id="args")])
 def test_keywords_only_arguments(
-    testkeychain: "ShellKeychain",
+    testkeychain: ShellKeychain,
     args: typing.List[str],
     kwargs: typing.Mapping[str, str],
 ) -> None:

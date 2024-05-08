@@ -49,18 +49,13 @@ class _RegExp:
 
 
 @pytest.fixture(autouse=True)
-def httpie_config_dir(
-    _httpie_config_dir: pathlib.Path,
-) -> typing.Generator[pathlib.Path, None, None]:
+def httpie_config_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> pathlib.Path:
     """Return a path to HTTPie configuration directory."""
 
-    yield _httpie_config_dir
-
-    # Since we cannot use new directory for HTTPie configuration for every test
-    # (see reasons in `_httpie_config_dir` fixture), we must at least ensure
-    # that there's no side effect between tests by emptying the directory.
-    for path in _httpie_config_dir.iterdir():
-        path.unlink()
+    config_dir = tmp_path.joinpath(".httpie")
+    config_dir.mkdir()
+    monkeypatch.setattr("httpie.config.DEFAULT_CONFIG_DIR", config_dir)
+    return config_dir
 
 
 @pytest.fixture()
@@ -89,7 +84,7 @@ def httpie_stderr() -> io.StringIO:
 
 
 @pytest.fixture()
-def httpie_run(httpie_stderr: io.StringIO) -> HttpieRunT:
+def httpie_run(httpie_stderr: io.StringIO, httpie_config_dir: pathlib.Path) -> HttpieRunT:
     """Run HTTPie from within this process."""
 
     def main(args: typing.List[typing.Union[str, bytes]]) -> int:
@@ -100,7 +95,7 @@ def httpie_run(httpie_stderr: io.StringIO) -> HttpieRunT:
         import httpie.core
 
         args = ["http", "--ignore-stdin", *args]
-        env = httpie.context.Environment(stderr=httpie_stderr)
+        env = httpie.context.Environment(stderr=httpie_stderr, config_dir=httpie_config_dir)
         return httpie.core.main(args, env=env)
 
     return main

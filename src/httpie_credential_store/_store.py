@@ -34,11 +34,11 @@ class CredentialStore:
         raise LookupError(message)
 
 
-def get_credential_store(name, directory=httpie.config.DEFAULT_CONFIG_DIR):
+def get_credential_store(name, directory=None):
     """Returns a credential store that can be used to lookup credentials."""
 
     credentials = []
-    credential_file = os.path.join(directory, name)
+    credential_file = os.path.join(directory or httpie.config.DEFAULT_CONFIG_DIR, name)
 
     if not os.path.exists(credential_file):
         error_message = (

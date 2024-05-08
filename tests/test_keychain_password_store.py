@@ -11,9 +11,7 @@ import typing
 
 import pytest
 
-
-if typing.TYPE_CHECKING:
-    from httpie_credential_store._keychain import PasswordStoreKeychain
+from httpie_credential_store._keychain import PasswordStoreKeychain
 
 
 _is_macos = sys.platform == "darwin"
@@ -82,18 +80,13 @@ def password_store_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) 
 
 
 @pytest.fixture()
-def testkeychain() -> "PasswordStoreKeychain":
+def testkeychain() -> PasswordStoreKeychain:
     """Keychain instance under test."""
 
-    # For the same reasons as in tests/test_plugin.py, all imports that trigger
-    # HTTPie importing must be postponed till one of our fixtures is evaluated
-    # and patched a path to HTTPie configuration.
-    from httpie_credential_store import _keychain
-
-    return _keychain.PasswordStoreKeychain()
+    return PasswordStoreKeychain()
 
 
-def test_secret_retrieved(testkeychain: "PasswordStoreKeychain", gpg_key_id: str) -> None:
+def test_secret_retrieved(testkeychain: PasswordStoreKeychain, gpg_key_id: str) -> None:
     """The keychain returns stored secret, no bullshit."""
 
     subprocess.check_call(["pass", "init", gpg_key_id])
@@ -102,7 +95,7 @@ def test_secret_retrieved(testkeychain: "PasswordStoreKeychain", gpg_key_id: str
     assert testkeychain.get(name="service/user") == "f00b@r"
 
 
-def test_secret_not_found(testkeychain: "PasswordStoreKeychain") -> None:
+def test_secret_not_found(testkeychain: PasswordStoreKeychain) -> None:
     """LookupError is raised when no secrets are found in the keychain."""
 
     with pytest.raises(LookupError) as excinfo:
