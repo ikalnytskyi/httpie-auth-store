@@ -153,7 +153,7 @@ def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == "Basic dXNlcjpwQHNz"
+    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"
 
 
 @responses.activate
@@ -184,7 +184,7 @@ def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type,
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == "Basic dXNlcjpwQHNz"
+    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"
 
 
 @responses.activate
@@ -383,6 +383,68 @@ def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type
 
 
 @responses.activate
+def test_creds_auth_3rd_party_plugin(httpie_run, set_credentials, creds_auth_type):
+    """The plugin works for third-party auth plugin."""
+
+    set_credentials(
+        [
+            {
+                "url": "http://example.com",
+                "auth": {
+                    "provider": "hmac",
+                    "auth": "secret:rice",
+                },
+            }
+        ]
+    )
+
+    # The 'Date' request header is supplied to make sure that produced HMAC
+    # is always the same.
+    httpie_run(["-A", creds_auth_type, "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "HMAC dGPPAQGIQ4KYgxuZm45G8pUspKI2wx/XjwMBpoMi3Gk="
+
+
+@responses.activate
+def test_creds_auth_3rd_party_plugin_keychain(
+    httpie_run, set_credentials, creds_auth_type, tmp_path
+):
+    """The plugin retrieves secrets from keychain for third-party auth plugins."""
+
+    secrettxt = tmp_path.joinpath("secret.txt")
+    secrettxt.write_text("secret:rice", encoding="UTF-8")
+
+    set_credentials(
+        [
+            {
+                "url": "http://example.com",
+                "auth": {
+                    "provider": "hmac",
+                    "auth": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt}",
+                    },
+                },
+            }
+        ]
+    )
+
+    # The 'Date' request header is supplied to make sure that produced HMAC
+    # is always the same.
+    httpie_run(["-A", creds_auth_type, "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "HMAC dGPPAQGIQ4KYgxuZm45G8pUspKI2wx/XjwMBpoMi3Gk="
+
+
+@responses.activate
 def test_creds_auth_multiple_token_header(httpie_run, set_credentials, creds_auth_type):
     """The plugin works for multiple auths."""
 
@@ -504,86 +566,91 @@ def test_creds_auth_multiple_token_header_keychain(
 
 @responses.activate
 @pytest.mark.parametrize(
-    ("auth", "error_pattern"),
+    ("auth", "error_message"),
     [
         pytest.param(
             {"provider": "basic"},
-            r"http: error: TypeError: (HTTPBasicAuth\.)?__init__\(\) missing 2 required "
-            r"keyword-only arguments: 'username' and 'password'",
+            "http: error: TypeError: BasicAuthPlugin.get_auth() missing 2 "
+            "required positional arguments: 'username' and 'password'",
             id="basic-both",
         ),
         pytest.param(
             {"provider": "basic", "username": "user"},
-            r"http: error: TypeError: (HTTPBasicAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'password'",
+            "http: error: TypeError: BasicAuthPlugin.get_auth() missing 1 "
+            "required positional argument: 'password'",
             id="basic-passowrd",
         ),
         pytest.param(
             {"provider": "basic", "password": "p@ss"},
-            r"http: error: TypeError: (HTTPBasicAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'username'",
+            "http: error: TypeError: BasicAuthPlugin.get_auth() missing 1 "
+            "required positional argument: 'username'",
             id="basic-username",
         ),
         pytest.param(
             {"provider": "digest"},
-            r"http: error: TypeError: (HTTPDigestAuth\.)?__init__\(\) missing 2 required "
-            r"keyword-only arguments: 'username' and 'password'",
+            "http: error: TypeError: DigestAuthPlugin.get_auth() missing 2 "
+            "required positional arguments: 'username' and 'password'",
             id="digest-both",
         ),
         pytest.param(
             {"provider": "digest", "username": "user"},
-            r"http: error: TypeError: (HTTPDigestAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'password'",
+            "http: error: TypeError: DigestAuthPlugin.get_auth() missing 1 "
+            "required positional argument: 'password'",
             id="digest-password",
         ),
         pytest.param(
             {"provider": "digest", "password": "p@ss"},
-            r"http: error: TypeError: (HTTPDigestAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'username'",
+            "http: error: TypeError: DigestAuthPlugin.get_auth() missing 1 "
+            "required positional argument: 'username'",
             id="digest-username",
         ),
         pytest.param(
             {"provider": "token"},
-            r"http: error: TypeError: (HTTPTokenAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'token'",
+            "http: error: TypeError: HTTPTokenAuth.__init__() missing 1 "
+            "required keyword-only argument: 'token'",
             id="token",
         ),
         pytest.param(
             {"provider": "header"},
-            r"http: error: TypeError: (HTTPHeaderAuth\.)?__init__\(\) missing 2 required "
-            r"keyword-only arguments: 'name' and 'value'",
+            "http: error: TypeError: HTTPHeaderAuth.__init__() missing 2 "
+            "required keyword-only arguments: 'name' and 'value'",
             id="header-both",
         ),
         pytest.param(
             {"provider": "header", "name": "X-Auth"},
-            r"http: error: TypeError: (HTTPHeaderAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'value'",
+            "http: error: TypeError: HTTPHeaderAuth.__init__() missing 1 "
+            "required keyword-only argument: 'value'",
             id="header-value",
         ),
         pytest.param(
             {"provider": "header", "value": "value-can-be-anything"},
-            r"http: error: TypeError: (HTTPHeaderAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'name'",
+            "http: error: TypeError: HTTPHeaderAuth.__init__() missing 1 "
+            "required keyword-only argument: 'name'",
             id="header-name",
         ),
         pytest.param(
             {"provider": "multiple"},
-            r"http: error: TypeError: (HTTPMultipleAuth\.)?__init__\(\) missing 1 required "
-            r"keyword-only argument: 'providers'",
+            "http: error: TypeError: HTTPMultipleAuth.__init__() missing 1 "
+            "required keyword-only argument: 'providers'",
             id="multiple",
         ),
     ],
 )
 def test_creds_auth_missing(
-    httpie_run, set_credentials, httpie_stderr, auth, error_pattern, creds_auth_type
+    httpie_run, set_credentials, httpie_stderr, auth, error_message, creds_auth_type
 ):
     """The plugin raises error on wrong parameters."""
 
     set_credentials([{"url": "http://example.com", "auth": auth}])
     httpie_run(["-A", creds_auth_type, "http://example.com"])
 
+    if _is_windows:
+        # The error messages on Windows doesn't contain class names before
+        # method names, thus we have to cut them out.
+        error_message = re.sub(r"TypeError: \w+\.", "TypeError: ", error_message)
+
     assert len(responses.calls) == 0
-    assert re.fullmatch(error_pattern, httpie_stderr.getvalue().strip())
+    assert httpie_stderr.getvalue().strip() == error_message
 
 
 @responses.activate
@@ -734,7 +801,7 @@ def test_creds_lookup_many_credentials(httpie_run, set_credentials, creds_auth_t
 
     request = responses.calls[1].request
     assert request.url == "http://skywalker.com/"
-    assert request.headers["Authorization"] == "Basic dXNlcjpwQHNz"
+    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"
 
 
 @responses.activate
@@ -864,7 +931,7 @@ def test_creds_permissions_safe(httpie_run, set_credentials, mode, creds_auth_ty
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == "Basic dXNlcjpwQHNz"
+    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"
 
 
 @responses.activate

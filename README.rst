@@ -113,9 +113,9 @@ passing ``-a`` argument.
 Authentication providers
 ------------------------
 
-HTTPie Credential Store comes with the following authentication
-providers out of box.
-
+HTTPie Credential Store supports both built-in and third-party HTTPie
+authentication plugins as well as provides few authentication plugins
+on its own.
 
 ``basic``
 .........
@@ -226,6 +226,27 @@ simultaneously. It's something you will (likely) never use.
 where
 
 * ``providers`` is a list of auth providers to use simultaneously
+
+
+``hmac``
+........
+
+The 'HMAC' authentication is not built-in one and requires the ``httpie-hmac``
+plugin to be installed first. Its only purpose here is to serve as an example
+of how to invoke third-party authentication plugins from the credentials store.
+
+.. code:: json
+
+   {
+     "provider": "hmac",
+     "auth": "secret:<HMAC_SECRET>"
+   }
+
+where
+
+* ``auth`` is a string with authentication payload passed that is normally
+  passed by a user via ``--auth``/``-a`` to HTTPie; each authentication plugin
+  may or may not require one
 
 
 Keychain providers

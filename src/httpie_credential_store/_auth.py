@@ -4,6 +4,7 @@ import abc
 import collections.abc
 import re
 
+import httpie.plugins.registry
 import requests.auth
 
 from ._keychain import get_keychain
@@ -37,24 +38,6 @@ class AuthProvider(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __call__(self, request):
         """Attach authentication to a given request."""
-
-
-class HTTPBasicAuth(requests.auth.HTTPBasicAuth, AuthProvider):
-    """Authentication via HTTP Basic scheme."""
-
-    name = "basic"
-
-    def __init__(self, *, username, password):
-        super().__init__(username, get_secret(password))
-
-
-class HTTPDigestAuth(requests.auth.HTTPDigestAuth, AuthProvider):
-    """Authentication via HTTP Digest scheme."""
-
-    name = "digest"
-
-    def __init__(self, *, username, password):
-        super().__init__(username, get_secret(password))
 
 
 class HTTPHeaderAuth(requests.auth.AuthBase, AuthProvider):
@@ -135,4 +118,14 @@ _PROVIDERS = {provider_cls.name: provider_cls for provider_cls in AuthProvider._
 
 
 def get_auth(provider, **kwargs):
+    try:
+        plugin_cls = httpie.plugins.registry.plugin_manager.get_auth_plugin(provider)
+    except KeyError:
+        pass
+    else:
+        plugin = plugin_cls()
+        plugin.raw_auth = get_secret(kwargs.pop("auth", None))
+        kwargs = {k: get_secret(v) for k, v in kwargs.items()}
+        return plugin.get_auth(**kwargs)
+
     return _PROVIDERS[provider](**kwargs)
