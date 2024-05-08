@@ -7,8 +7,11 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import typing
 
 import pytest
+
+from httpie_credential_store._keychain import PasswordStoreKeychain
 
 
 _is_macos = sys.platform == "darwin"
@@ -29,13 +32,13 @@ if _is_macos:
     # override 'tmp_path' fixture to return much shorter path to a temporary
     # directory.
     @pytest.fixture()
-    def tmp_path():
+    def tmp_path() -> typing.Generator[pathlib.Path, None, None]:
         with tempfile.TemporaryDirectory() as path:
             yield pathlib.Path(path)
 
 
 @pytest.fixture()
-def gpg_key_id(monkeypatch, tmp_path):
+def gpg_key_id(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> str:
     """Return a Key ID of just generated GPG key."""
 
     gpghome = tmp_path.joinpath(".gnupg")
@@ -68,7 +71,7 @@ def gpg_key_id(monkeypatch, tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def password_store_dir(monkeypatch, tmp_path):
+def password_store_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path) -> pathlib.Path:
     """Set password-store home directory to a temporary one."""
 
     passstore = tmp_path.joinpath(".password-store")
@@ -77,18 +80,13 @@ def password_store_dir(monkeypatch, tmp_path):
 
 
 @pytest.fixture()
-def testkeychain():
+def testkeychain() -> PasswordStoreKeychain:
     """Keychain instance under test."""
 
-    # For the same reasons as in tests/test_plugin.py, all imports that trigger
-    # HTTPie importing must be postponed till one of our fixtures is evaluated
-    # and patched a path to HTTPie configuration.
-    from httpie_credential_store import _keychain
-
-    return _keychain.PasswordStoreKeychain()
+    return PasswordStoreKeychain()
 
 
-def test_secret_retrieved(testkeychain, gpg_key_id):
+def test_secret_retrieved(testkeychain: PasswordStoreKeychain, gpg_key_id: str) -> None:
     """The keychain returns stored secret, no bullshit."""
 
     subprocess.check_call(["pass", "init", gpg_key_id])
@@ -97,7 +95,7 @@ def test_secret_retrieved(testkeychain, gpg_key_id):
     assert testkeychain.get(name="service/user") == "f00b@r"
 
 
-def test_secret_not_found(testkeychain):
+def test_secret_not_found(testkeychain: PasswordStoreKeychain) -> None:
     """LookupError is raised when no secrets are found in the keychain."""
 
     with pytest.raises(LookupError) as excinfo:

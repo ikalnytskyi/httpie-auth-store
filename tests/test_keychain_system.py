@@ -1,26 +1,34 @@
 """Tests system keychain provider."""
 
+import typing
+
 import keyring
+import keyring.backend
+import keyring.compat
 import pytest
+
+from httpie_credential_store._keychain import SystemKeychain
 
 
 class _InmemoryKeyring(keyring.backend.KeyringBackend):
     """Keyring backend that stores secrets in-memory."""
 
-    priority = 1
+    @keyring.compat.properties.classproperty
+    def priority(self) -> float:
+        return 1.0
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._keyring = {}
 
-    def get_password(self, service, username):
+    def get_password(self, service: str, username: str) -> typing.Optional[str]:
         return self._keyring.get((service, username))
 
-    def set_password(self, service, username, password):
+    def set_password(self, service: str, username: str, password: str) -> None:
         self._keyring[(service, username)] = password
 
 
 @pytest.fixture(autouse=True)
-def keyring_backend():
+def keyring_backend() -> typing.Generator[keyring.backend.KeyringBackend, None, None]:
     """Temporary set in-memory keyring as current backend."""
 
     prev_backend = keyring.get_keyring()
@@ -30,25 +38,23 @@ def keyring_backend():
 
 
 @pytest.fixture()
-def testkeychain():
+def testkeychain() -> SystemKeychain:
     """Keychain instance under test."""
 
-    # For the same reasons as in tests/test_plugin.py, all imports that trigger
-    # HTTPie importing must be postponed till one of our fixtures is evaluated
-    # and patched a path to HTTPie configuration.
-    from httpie_credential_store import _keychain
-
-    return _keychain.SystemKeychain()
+    return SystemKeychain()
 
 
-def test_secret_retrieved(testkeychain, keyring_backend):
+def test_secret_retrieved(
+    testkeychain: SystemKeychain,
+    keyring_backend: keyring.backend.KeyringBackend,
+) -> None:
     """The keychain returns stored secret, no bullshit."""
 
     keyring_backend.set_password("testsvc", "testuser", "p@ss")
     assert testkeychain.get(service="testsvc", username="testuser") == "p@ss"
 
 
-def test_secret_not_found(testkeychain):
+def test_secret_not_found(testkeychain: SystemKeychain) -> None:
     """LookupError is raised when no secrets are found in the keychain."""
 
     with pytest.raises(LookupError) as excinfo:
@@ -66,7 +72,12 @@ def test_secret_not_found(testkeychain):
         pytest.param(["testsvc"], {"username": "testuser"}, id="args-kwargs"),
     ],
 )
-def test_keywords_only_arguments(testkeychain, keyring_backend, args, kwargs):
+def test_keywords_only_arguments(
+    testkeychain: SystemKeychain,
+    keyring_backend: keyring.backend.KeyringBackend,
+    args: typing.List[str],
+    kwargs: typing.Mapping[str, str],
+) -> None:
     keyring_backend.set_password("testsvc", "testuser", "p@ss")
 
     with pytest.raises(TypeError):
