@@ -31,6 +31,7 @@ optional = true
 pytest = "^7.1"
 responses = "^0.20"
 pytest-github-actions-annotate-failures = "*"
+httpie-hmac = "*"
 
 [tool.poetry.plugins."httpie.plugins.auth.v1"]
 credential-store = "httpie_credential_store:CredentialStoreAuthPlugin"
