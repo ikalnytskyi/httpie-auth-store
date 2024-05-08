@@ -1,6 +1,6 @@
 """HTTPie Credential Store."""
 
-from ._plugin import CredentialStoreAuthPlugin, CredsAuthPlugin
+from ._plugin import CredentialStoreAuthPlugin, CredsAuthPlugin, StoreAuthPlugin
 
 
-__all__ = ["CredentialStoreAuthPlugin", "CredsAuthPlugin"]
+__all__ = ["StoreAuthPlugin", "CredentialStoreAuthPlugin", "CredsAuthPlugin"]

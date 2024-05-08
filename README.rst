@@ -20,7 +20,7 @@ Usage
 -----
 
 .. note:: Please, do not forget to activate the plugin by invoking
-          ``http`` with ``-A creds`` option.
+          ``http`` with ``-A store`` option.
 
 Once installed, the plugin will look for credentials in the credential
 file. The credential file is stored in HTTPie configuration directory.
@@ -95,19 +95,19 @@ the following credential record:
    ]
 
 Once the credential store is filled, you're ready to use the plugin at
-your will. In order to activate the plugin, you must pass ``-A creds``
-or ``-A credential-store`` to ``http`` executable.
+your will. In order to activate the plugin, you must pass ``-A store``
+to ``http`` executable.
 
 .. code:: bash
 
-   $ http -A creds https://api.github.com
+   $ http -A store https://api.github.com
 
 Optionally, you can provide an ID of the credential record to use by
 passing ``-a`` argument.
 
 .. code:: bash
 
-   $ http -A creds -a bots https://api.github.com
+   $ http -A store -a bots https://api.github.com
 
 
 Authentication providers
