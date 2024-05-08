@@ -98,13 +98,6 @@ def httpie_run(httpie_stderr):
     return main
 
 
-@pytest.fixture(params=["store", "credential-store", "creds"])
-def creds_auth_type(request):
-    """All possible aliases."""
-
-    return request.param
-
-
 @responses.activate
 def test_basic_auth_plugin(httpie_run):
     """The plugin neither breaks nor overwrites existing auth plugins."""
@@ -119,7 +112,7 @@ def test_basic_auth_plugin(httpie_run):
 
 
 @responses.activate
-def test_creds_auth_deactivated_by_default(httpie_run):
+def test_store_auth_deactivated_by_default(httpie_run):
     """The plugin is deactivated by default."""
 
     httpie_run(["http://example.com"])
@@ -132,7 +125,7 @@ def test_creds_auth_deactivated_by_default(httpie_run):
 
 
 @responses.activate
-def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_basic(httpie_run, set_credentials):
     """The plugin works for HTTP basic auth."""
 
     set_credentials(
@@ -147,7 +140,7 @@ def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -157,7 +150,7 @@ def test_creds_auth_basic(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
+def test_store_auth_basic_keychain(httpie_run, set_credentials, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP basic auth."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -178,7 +171,7 @@ def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type,
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -188,7 +181,7 @@ def test_creds_auth_basic_keychain(httpie_run, set_credentials, creds_auth_type,
 
 
 @responses.activate
-def test_creds_auth_digest(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_digest(httpie_run, set_credentials):
     """The plugin works for HTTP digest auth."""
 
     responses.add(
@@ -217,7 +210,7 @@ def test_creds_auth_digest(httpie_run, set_credentials, creds_auth_type):
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 2
     request = responses.calls[0].request
@@ -248,7 +241,7 @@ def test_creds_auth_digest(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_token(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_token(httpie_run, set_credentials):
     """The plugin works for HTTP token auth."""
 
     set_credentials(
@@ -262,7 +255,7 @@ def test_creds_auth_token(httpie_run, set_credentials, creds_auth_type):
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -272,7 +265,7 @@ def test_creds_auth_token(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_token_scheme(httpie_run, set_credentials):
     """The plugin works for HTTP token auth with custom scheme."""
 
     set_credentials(
@@ -287,7 +280,7 @@ def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -297,7 +290,7 @@ def test_creds_auth_token_scheme(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
+def test_store_auth_token_keychain(httpie_run, set_credentials, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP token auth."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -317,7 +310,7 @@ def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type,
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -327,7 +320,7 @@ def test_creds_auth_token_keychain(httpie_run, set_credentials, creds_auth_type,
 
 
 @responses.activate
-def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_header(httpie_run, set_credentials):
     """The plugin works for HTTP header auth."""
 
     set_credentials(
@@ -342,7 +335,7 @@ def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -352,7 +345,7 @@ def test_creds_auth_header(httpie_run, set_credentials, creds_auth_type):
 
 
 @responses.activate
-def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type, tmp_path):
+def test_store_auth_header_keychain(httpie_run, set_credentials, tmp_path):
     """The plugin retrieves secrets from keychain for HTTP header auth."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -373,7 +366,7 @@ def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -383,7 +376,7 @@ def test_creds_auth_header_keychain(httpie_run, set_credentials, creds_auth_type
 
 
 @responses.activate
-def test_creds_auth_3rd_party_plugin(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_3rd_party_plugin(httpie_run, set_credentials):
     """The plugin works for third-party auth plugin."""
 
     set_credentials(
@@ -400,7 +393,7 @@ def test_creds_auth_3rd_party_plugin(httpie_run, set_credentials, creds_auth_typ
 
     # The 'Date' request header is supplied to make sure that produced HMAC
     # is always the same.
-    httpie_run(["-A", creds_auth_type, "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
+    httpie_run(["-A", "store", "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -410,9 +403,7 @@ def test_creds_auth_3rd_party_plugin(httpie_run, set_credentials, creds_auth_typ
 
 
 @responses.activate
-def test_creds_auth_3rd_party_plugin_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmp_path
-):
+def test_store_auth_3rd_party_plugin_keychain(httpie_run, set_credentials, tmp_path):
     """The plugin retrieves secrets from keychain for third-party auth plugins."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -435,7 +426,7 @@ def test_creds_auth_3rd_party_plugin_keychain(
 
     # The 'Date' request header is supplied to make sure that produced HMAC
     # is always the same.
-    httpie_run(["-A", creds_auth_type, "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
+    httpie_run(["-A", "store", "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -445,7 +436,7 @@ def test_creds_auth_3rd_party_plugin_keychain(
 
 
 @responses.activate
-def test_creds_auth_multiple_token_header(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_multiple_token_header(httpie_run, set_credentials):
     """The plugin works for multiple auths."""
 
     set_credentials(
@@ -470,7 +461,7 @@ def test_creds_auth_multiple_token_header(httpie_run, set_credentials, creds_aut
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -481,7 +472,7 @@ def test_creds_auth_multiple_token_header(httpie_run, set_credentials, creds_aut
 
 
 @responses.activate
-def test_creds_auth_multiple_header_header(httpie_run, set_credentials, creds_auth_type):
+def test_store_auth_multiple_header_header(httpie_run, set_credentials):
     """The plugin supports usage of the same auth provider twice."""
 
     set_credentials(
@@ -506,7 +497,7 @@ def test_creds_auth_multiple_header_header(httpie_run, set_credentials, creds_au
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -517,9 +508,7 @@ def test_creds_auth_multiple_header_header(httpie_run, set_credentials, creds_au
 
 
 @responses.activate
-def test_creds_auth_multiple_token_header_keychain(
-    httpie_run, set_credentials, creds_auth_type, tmp_path
-):
+def test_store_auth_multiple_token_header_keychain(httpie_run, set_credentials, tmp_path):
     """The plugin retrieves secrets from keychains for combination of auths."""
 
     tokentxt, secrettxt = tmp_path.joinpath("token.txt"), tmp_path.joinpath("secret.txt")
@@ -554,7 +543,7 @@ def test_creds_auth_multiple_token_header_keychain(
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -636,13 +625,11 @@ def test_creds_auth_multiple_token_header_keychain(
         ),
     ],
 )
-def test_creds_auth_missing(
-    httpie_run, set_credentials, httpie_stderr, auth, error_message, creds_auth_type
-):
+def test_store_auth_missing(httpie_run, set_credentials, httpie_stderr, auth, error_message):
     """The plugin raises error on wrong parameters."""
 
     set_credentials([{"url": "http://example.com", "auth": auth}])
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     if _is_windows:
         # The error messages on Windows doesn't contain class names before
@@ -708,9 +695,7 @@ def test_creds_auth_missing(
         ),
     ],
 )
-def test_creds_lookup_regexp(
-    httpie_run, set_credentials, regexp, url, normalized_url, creds_auth_type
-):
+def test_store_lookup_regexp(httpie_run, set_credentials, regexp, url, normalized_url):
     """The plugin uses pattern matching to find credentials."""
 
     set_credentials(
@@ -724,7 +709,7 @@ def test_creds_lookup_regexp(
             }
         ]
     )
-    httpie_run(["-A", creds_auth_type, url])
+    httpie_run(["-A", "store", url])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -734,7 +719,7 @@ def test_creds_lookup_regexp(
 
 
 @responses.activate
-def test_creds_lookup_1st_matched_wins(httpie_run, set_credentials, creds_auth_type):
+def test_store_lookup_1st_matched_wins(httpie_run, set_credentials):
     """The plugin uses auth of first matched credential entry."""
 
     set_credentials(
@@ -756,7 +741,7 @@ def test_creds_lookup_1st_matched_wins(httpie_run, set_credentials, creds_auth_t
             },
         ]
     )
-    httpie_run(["-A", creds_auth_type, "https://yoda.ua/v2/the-force"])
+    httpie_run(["-A", "store", "https://yoda.ua/v2/the-force"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -766,7 +751,7 @@ def test_creds_lookup_1st_matched_wins(httpie_run, set_credentials, creds_auth_t
 
 
 @responses.activate
-def test_creds_lookup_many_credentials(httpie_run, set_credentials, creds_auth_type):
+def test_store_lookup_many_credentials(httpie_run, set_credentials):
     """The plugin works with many URLs and credentials."""
 
     responses.add(responses.GET, "https://yoda.ua/about/", status=200)
@@ -791,8 +776,8 @@ def test_creds_lookup_many_credentials(httpie_run, set_credentials, creds_auth_t
             },
         ]
     )
-    httpie_run(["-A", creds_auth_type, "https://yoda.ua/about/"])
-    httpie_run(["-A", creds_auth_type, "http://skywalker.com"])
+    httpie_run(["-A", "store", "https://yoda.ua/about/"])
+    httpie_run(["-A", "store", "http://skywalker.com"])
     assert len(responses.calls) == 2
 
     request = responses.calls[0].request
@@ -819,7 +804,7 @@ def test_creds_lookup_many_credentials(httpie_run, set_credentials, creds_auth_t
         ),
     ],
 )
-def test_creds_lookup_error(httpie_run, set_credentials, regexp, url, httpie_stderr):
+def test_store_lookup_error(httpie_run, set_credentials, regexp, url, httpie_stderr):
     """The plugin raises error if no credentials found."""
 
     set_credentials(
@@ -842,7 +827,7 @@ def test_creds_lookup_error(httpie_run, set_credentials, regexp, url, httpie_std
 
 
 @responses.activate
-def test_creds_lookup_by_id(httpie_run, set_credentials):
+def test_store_lookup_by_id(httpie_run, set_credentials):
     """The plugin uses a given credential ID as a hint for 2+ matches."""
 
     set_credentials(
@@ -872,7 +857,7 @@ def test_creds_lookup_by_id(httpie_run, set_credentials):
 
 
 @responses.activate
-def test_creds_lookup_by_id_error(httpie_run, set_credentials, httpie_stderr, creds_auth_type):
+def test_store_lookup_by_id_error(httpie_run, set_credentials, httpie_stderr):
     """The plugin raises error if no credentials found."""
 
     set_credentials(
@@ -890,7 +875,7 @@ def test_creds_lookup_by_id_error(httpie_run, set_credentials, httpie_stderr, cr
         ]
     )
 
-    httpie_run(["-A", creds_auth_type, "-a", "vader", "https://yoda.ua/about/"])
+    httpie_run(["-A", "store", "-a", "vader", "https://yoda.ua/about/"])
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
         "http: error: LookupError: No credentials found for a given URL: "
@@ -909,7 +894,7 @@ def test_creds_lookup_by_id_error(httpie_run, set_credentials, httpie_stderr, cr
         pytest.param(0o400, id="0400"),
     ],
 )
-def test_creds_permissions_safe(httpie_run, set_credentials, mode, creds_auth_type):
+def test_store_permissions_safe(httpie_run, set_credentials, mode):
     """The plugin doesn't complain if credentials file has safe permissions."""
 
     set_credentials(
@@ -925,7 +910,7 @@ def test_creds_permissions_safe(httpie_run, set_credentials, mode, creds_auth_ty
         ],
         mode=mode,
     )
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -955,18 +940,17 @@ def test_creds_permissions_safe(httpie_run, set_credentials, mode, creds_auth_ty
         pytest.param(0o610, id="0610"),
     ],
 )
-def test_creds_permissions_unsafe(
+def test_store_permissions_unsafe(
     httpie_run,
     set_credentials,
     mode,
     httpie_stderr,
     credentials_file,
-    creds_auth_type,
 ):
     """The plugin complains if credentials file has unsafe permissions."""
 
     set_credentials([{"url": "http://example.com", "auth": {}}], mode=mode)
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (
         f"http: error: PermissionError: Permissions '{mode:04o}' for "
@@ -985,18 +969,17 @@ def test_creds_permissions_unsafe(
         pytest.param(0o100, id="0100"),
     ],
 )
-def test_creds_permissions_not_enough(
+def test_store_permissions_not_enough(
     httpie_run,
     set_credentials,
     mode,
     httpie_stderr,
     credentials_file,
-    creds_auth_type,
 ):
     """The plugin complains if credentials file has unsafe permissions."""
 
     set_credentials([{"url": "http://example.com", "auth": {}}], mode=mode)
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (
         f"http: error: PermissionError: Permissions '{mode:04o}' for "
@@ -1006,10 +989,10 @@ def test_creds_permissions_not_enough(
 
 
 @responses.activate
-def test_creds_auth_no_database(httpie_run, credentials_file, httpie_stderr, creds_auth_type):
+def test_store_auth_no_database(httpie_run, credentials_file, httpie_stderr):
     """The plugin raises error if credentials file does not exist."""
 
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
@@ -1045,11 +1028,11 @@ def test_creds_auth_no_database(httpie_run, credentials_file, httpie_stderr, cre
         ),
     ],
 )
-def test_creds_auth_header_value_illegal_characters(
-    httpie_run, set_credentials, httpie_stderr, creds_auth_type, auth, error
+def test_store_auth_header_value_illegal_characters(
+    httpie_run, set_credentials, httpie_stderr, auth, error
 ):
     set_credentials([{"url": "http://example.com", "auth": auth}])
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == error
@@ -1075,11 +1058,37 @@ def test_creds_auth_header_value_illegal_characters(
         ),
     ],
 )
-def test_creds_auth_header_name_illegal_characters(
-    httpie_run, set_credentials, httpie_stderr, creds_auth_type, auth, error
+def test_store_auth_header_name_illegal_characters(
+    httpie_run, set_credentials, httpie_stderr, auth, error
 ):
     set_credentials([{"url": "http://example.com", "auth": auth}])
-    httpie_run(["-A", creds_auth_type, "http://example.com"])
+    httpie_run(["-A", "store", "http://example.com"])
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == error
+
+
+@responses.activate
+@pytest.mark.parametrize("auth_type", ["store", "credential-store", "creds"])
+def test_auth_type_aliases(httpie_run, set_credentials, auth_type):
+    """The plugin can be invoked via 'creds' alias."""
+
+    set_credentials(
+        [
+            {
+                "url": "http://example.com",
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": "p@ss",
+                },
+            }
+        ]
+    )
+    httpie_run(["-A", auth_type, "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"
