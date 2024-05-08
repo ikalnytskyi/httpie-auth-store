@@ -6,7 +6,7 @@ import requests
 from ._store import get_credential_store
 
 
-class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
+class StoreAuthPlugin(httpie.plugins.AuthPlugin):
     """Attach authentication to ongoing HTTP request.
 
     Usage::
@@ -15,10 +15,10 @@ class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
         $ http -A credential-store -a ihor http://example.com/v1/resource
     """
 
-    name = "credential-store"
+    name = "HTTPie Credential Store"
     description = "Retrieve & attach authentication to ongoing HTTP request."
 
-    auth_type = "credential-store"  # use plugin by passing '-A credential-store'
+    auth_type = "store"  # use plugin by passing '-A store'
     auth_require = False  # do not require passing '-a' argument
     auth_parse = False  # do not parse '-a' content
 
@@ -36,7 +36,13 @@ class CredentialStoreAuthPlugin(httpie.plugins.AuthPlugin):
         return CredentialStoreAuth()
 
 
-class CredsAuthPlugin(CredentialStoreAuthPlugin):
-    """Nothing more but a convenient alias."""
+class CredentialStoreAuthPlugin(StoreAuthPlugin):
+    """DEPRECATED: invoke 'store' authentication via '-A credential-store'."""
 
-    auth_type = "creds"  # use plugin by passing '-A creds'
+    auth_type = "credential-store"
+
+
+class CredsAuthPlugin(CredentialStoreAuthPlugin):
+    """DEPRECATED: invoke 'store' authentication via '-A creds'."""
+
+    auth_type = "creds"

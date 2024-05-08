@@ -98,7 +98,7 @@ def httpie_run(httpie_stderr):
     return main
 
 
-@pytest.fixture(params=["credential-store", "creds"])
+@pytest.fixture(params=["store", "credential-store", "creds"])
 def creds_auth_type(request):
     """All possible aliases."""
 
