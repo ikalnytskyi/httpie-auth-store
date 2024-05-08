@@ -1,12 +1,18 @@
 """Tests shell keychain provider."""
 
 import os
+import pathlib
+import typing
 
 import pytest
 
 
+if typing.TYPE_CHECKING:
+    from httpie_credential_store._keychain import ShellKeychain
+
+
 @pytest.fixture()
-def testkeychain():
+def testkeychain() -> "ShellKeychain":
     """Keychain instance under test."""
 
     # For the same reasons as in tests/test_plugin.py, all imports that trigger
@@ -17,7 +23,7 @@ def testkeychain():
     return _keychain.ShellKeychain()
 
 
-def test_secret_retrieved(testkeychain, tmp_path):
+def test_secret_retrieved(testkeychain: "ShellKeychain", tmp_path: pathlib.Path) -> None:
     """The keychain returns stored secret, no bullshit."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -25,7 +31,7 @@ def test_secret_retrieved(testkeychain, tmp_path):
     assert testkeychain.get(command=f"cat {secrettxt}") == "p@ss"
 
 
-def test_secret_retrieved_pipe(testkeychain, tmp_path):
+def test_secret_retrieved_pipe(testkeychain: "ShellKeychain", tmp_path: pathlib.Path) -> None:
     """The keychain returns stored secret even when pipes are used."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -35,7 +41,7 @@ def test_secret_retrieved_pipe(testkeychain, tmp_path):
     assert testkeychain.get(command=command) == "p@ss"
 
 
-def test_secret_not_found(testkeychain, tmp_path):
+def test_secret_not_found(testkeychain: "ShellKeychain", tmp_path: pathlib.Path) -> None:
     """LookupError is raised when no secrets are found in the keychain."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
@@ -49,6 +55,10 @@ def test_secret_not_found(testkeychain, tmp_path):
 
 
 @pytest.mark.parametrize(("args", "kwargs"), [pytest.param(["echo p@ss"], {}, id="args")])
-def test_keywords_only_arguments(testkeychain, args, kwargs):
+def test_keywords_only_arguments(
+    testkeychain: "ShellKeychain",
+    args: typing.List[str],
+    kwargs: typing.Mapping[str, str],
+) -> None:
     with pytest.raises(TypeError):
         testkeychain.get(*args, **kwargs)

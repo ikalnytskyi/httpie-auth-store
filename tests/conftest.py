@@ -1,8 +1,13 @@
+import pathlib
+import typing
+
 import pytest
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _httpie_config_dir(tmp_path_factory: pytest.TempPathFactory):
+def _httpie_config_dir(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> typing.Generator[pathlib.Path, None, None]:
     """Set path to HTTPie configuration directory."""
 
     # HTTPie can optionally read a path to configuration directory from
