@@ -1,131 +1,155 @@
-"""Various authentication providers for python-requests."""
+import os
+import typing as t
 
-import abc
-import collections.abc
-import re
-
+import httpie.cli.argtypes
+import httpie.config
+import httpie.plugins
 import httpie.plugins.registry
+import requests
 import requests.auth
 
-from ._keychain import get_keychain
+from ._store import AuthEntry, AuthStore
 
 
-# These patterns are copied over from built-in `http.client` implementation,
-# and are more lenient than RFC definitions for backwards compatibility
-# reasons.
-is_legal_header_name = re.compile(r"[^:\s][^:\r\n]*").fullmatch
-is_illegal_header_value = re.compile(r"\n(?![ \t])|\r(?![ \t\n])").search
+__all__ = ["StoreAuthPlugin"]
 
 
-def get_secret(value):
-    """Retrieve and return secret."""
+class StoreAuth(requests.auth.AuthBase):
+    """Authenticate the given request using authentication store."""
 
-    if not isinstance(value, collections.abc.Mapping):
-        return value
+    AUTH_STORE_FILENAME = "auth_store.json"
 
-    keychain = get_keychain(value.pop("keychain"))
-    return keychain.get(**value)
+    def __init__(self, binding_id: t.Optional[str] = None) -> None:
+        self._binding_id = binding_id
+
+    def __call__(self, request: requests.PreparedRequest) -> requests.PreparedRequest:
+        auth_store_dir = httpie.config.DEFAULT_CONFIG_DIR
+        auth_store = AuthStore.from_filename(os.path.join(auth_store_dir, self.AUTH_STORE_FILENAME))
+
+        # The credentials store plugin provides extended authentication
+        # capabilities, and therefore requires registering extra HTTPie
+        # authentication plugins for the given request only.
+        httpie.plugins.registry.plugin_manager.register(HeaderAuthPlugin)
+        httpie.plugins.registry.plugin_manager.register(CompositeAuthPlugin)
+
+        try:
+            auth_entry = auth_store.get_entry_for(request, self._binding_id)
+            request_auth = get_request_auth(auth_entry)
+            request = request_auth(request)
+        finally:
+            httpie.plugins.registry.plugin_manager.unregister(CompositeAuthPlugin)
+            httpie.plugins.registry.plugin_manager.unregister(HeaderAuthPlugin)
+        return request
 
 
-class AuthProvider(metaclass=abc.ABCMeta):
-    """Auth provider interface."""
+class HeaderAuth(requests.auth.AuthBase):
+    """Authenticate the given request using a free-form HTTP header."""
 
-    @property
-    @abc.abstractmethod
-    def name(self):
-        """Provider/implementation name."""
-
-    @abc.abstractmethod
-    def __call__(self, request):
-        """Attach authentication to a given request."""
-
-
-class HTTPHeaderAuth(requests.auth.AuthBase, AuthProvider):
-    """Authentication via custom HTTP header."""
-
-    name = "header"
-
-    def __init__(self, *, name, value):
+    def __init__(self, name: str, value: t.Optional[str]) -> None:
         self._name = name
-        self._value = get_secret(value)
+        self._value = value or ""
 
-        if not is_legal_header_name(self._name):
-            error_message = (
-                f"HTTP header authentication provider received invalid "
-                f"header name: {self._name!r}. Please remove illegal "
-                f"characters and try again."
-            )
-            raise ValueError(error_message)
-
-        if is_illegal_header_value(self._value):
-            error_message = (
-                f"HTTP header authentication provider received invalid "
-                f"header value: {self._value!r}. Please remove illegal "
-                f"characters and try again."
-            )
-            raise ValueError(error_message)
-
-    def __call__(self, request):
+    def __call__(self, request: requests.PreparedRequest) -> requests.PreparedRequest:
         request.headers[self._name] = self._value
         return request
 
 
-class HTTPTokenAuth(requests.auth.AuthBase, AuthProvider):
-    """Authentication via token."""
+class CompositeAuth(requests.auth.AuthBase):
+    """Authenticate the given request using several authentication types at once."""
 
-    name = "token"
+    def __init__(self, instances: t.List[requests.auth.AuthBase]) -> None:
+        self._instances = instances
 
-    def __init__(self, *, token, scheme="Bearer"):
-        self._scheme = scheme
-        self._token = get_secret(token)
-
-        if is_illegal_header_value(self._scheme):
-            error_message = (
-                f"HTTP token authentication provider received scheme that "
-                f"contains illegal characters: {self._scheme!r}. Please "
-                f"remove these characters and try again."
-            )
-            raise ValueError(error_message)
-
-        if is_illegal_header_value(self._token):
-            error_message = (
-                f"HTTP token authentication provider received token that "
-                f"contains illegal characters: {self._token!r}. Please "
-                f"remove these characters and try again."
-            )
-            raise ValueError(error_message)
-
-    def __call__(self, request):
-        request.headers["Authorization"] = f"{self._scheme} {self._token}"
+    def __call__(self, request: requests.PreparedRequest) -> requests.PreparedRequest:
+        for auth in self._instances:
+            request = auth(request)
         return request
 
 
-class HTTPMultipleAuth(requests.auth.AuthBase, AuthProvider):
-    """Authentication via multiple providers simultaneously."""
+class StoreAuthPlugin(httpie.plugins.AuthPlugin):
+    """Authenticate using credential store."""
 
-    name = "multiple"
+    name = "Credential Store HTTP Auth"
+    description = __doc__
 
-    def __init__(self, *, providers):
-        self._providers = [get_auth(provider.pop("provider"), **provider) for provider in providers]
+    auth_type = "store"
+    auth_require = False
+    auth_parse = False
 
-    def __call__(self, request):
-        for provider in self._providers:
-            request = provider(request)
-        return request
+    def get_auth(
+        self,
+        username: t.Optional[str] = None,
+        password: t.Optional[str] = None,
+    ) -> requests.auth.AuthBase:
+        _ = username
+        _ = password
+        return StoreAuth(self.raw_auth)
 
 
-_PROVIDERS = {provider_cls.name: provider_cls for provider_cls in AuthProvider.__subclasses__()}
+class HeaderAuthPlugin(httpie.plugins.AuthPlugin):
+    """Authenticate using a free-form HTTP header."""
+
+    name = "Custom Header HTTP Auth"
+    description = __doc__
+
+    auth_type = "header"
+    auth_require = True
+    auth_parse = False
+    raw_auth: str
+
+    def get_auth(
+        self,
+        username: t.Optional[str] = None,
+        password: t.Optional[str] = None,
+    ) -> requests.auth.AuthBase:
+        _ = username
+        _ = password
+        parsed = httpie.cli.argtypes.parse_auth(self.raw_auth)
+        return HeaderAuth(parsed.key, parsed.value)
 
 
-def get_auth(provider, **kwargs):
-    try:
-        plugin_cls = httpie.plugins.registry.plugin_manager.get_auth_plugin(provider)
-    except KeyError:
-        pass
-    else:
-        plugin = plugin_cls()
-        plugin.raw_auth = get_secret(kwargs.pop("auth", None))
-        kwargs = {k: get_secret(v) for k, v in kwargs.items()}
-        return plugin.get_auth(**kwargs)
+class CompositeAuthPlugin(httpie.plugins.AuthPlugin):
+    """Authenticate using several authentication mechanisms simultaneously."""
 
-    return _PROVIDERS[provider](**kwargs)
+    name = "Composite HTTP Auth"
+    description = __doc__
+
+    auth_type = "composite"
+    auth_require = True
+    auth_parse = False
+    raw_auth: t.List[AuthEntry]
+
+    def get_auth(
+        self,
+        username: t.Optional[str] = None,
+        password: t.Optional[str] = None,
+    ) -> requests.auth.AuthBase:
+        _ = username
+        _ = password
+        assert self.raw_auth is not None, "raw_auth must be provided"
+        return CompositeAuth([get_request_auth(auth_entry) for auth_entry in self.raw_auth])
+
+
+def get_request_auth(auth_entry: AuthEntry) -> requests.auth.AuthBase:
+    """Construct and return an appropriate authenticator instance."""
+
+    plugin = httpie.plugins.registry.plugin_manager.get_auth_plugin(auth_entry.auth_type)()
+    plugin.raw_auth = auth_entry.auth
+
+    if plugin.auth_require and plugin.raw_auth is None:
+        error_message = f"Broken '{auth_entry.auth_type}' authentication entry: missing 'auth'."
+        raise ValueError(error_message)
+
+    kwargs = {}
+    if plugin.auth_parse and plugin.raw_auth is not None:
+        parsed = httpie.cli.argtypes.parse_auth(plugin.raw_auth)
+
+        # Both basic and digest authentication plugins don't expect password
+        # to be None, and thus cast the input value to string, meaning that
+        # the effective password becomes "None" string. This behaviour is weird
+        # and unexpected. We better pass an empty string in this case.
+        if plugin.auth_type in {"basic", "digest"} and parsed.value is None:
+            parsed.value = ""
+        kwargs = {"username": parsed.key, "password": parsed.value}
+
+    return plugin.get_auth(**kwargs)

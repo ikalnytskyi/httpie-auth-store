@@ -1,6 +1,4 @@
-"""HTTPie Auth Store."""
-
-from ._plugin import StoreAuthPlugin
+from ._auth import StoreAuthPlugin
 
 
 __all__ = ["StoreAuthPlugin"]
