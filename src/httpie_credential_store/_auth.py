@@ -1,14 +1,18 @@
 """Various authentication providers for python-requests."""
 
-import abc
 import collections.abc
 import re
+import string
+import typing as t
 
+import httpie.cli.argtypes
+import httpie.plugins
 import httpie.plugins.registry
+import requests
 import requests.auth
 
-from ._keychain import get_keychain
 
+__all__ = ["get_auth"]
 
 # These patterns are copied over from built-in `http.client` implementation,
 # and are more lenient than RFC definitions for backwards compatibility
@@ -17,115 +21,84 @@ is_legal_header_name = re.compile(r"[^:\s][^:\r\n]*").fullmatch
 is_illegal_header_value = re.compile(r"\n(?![ \t])|\r(?![ \t\n])").search
 
 
-def get_secret(value):
-    """Retrieve and return secret."""
+class HeaderAuthPlugin(httpie.plugins.AuthPlugin):
+    """Sign requests using a custom HTTP header."""
 
-    if not isinstance(value, collections.abc.Mapping):
-        return value
+    name = "HTTPie Custom Header Auth"
+    description = "Sign requests using a custom HTTP header"
 
-    keychain = get_keychain(value.pop("keychain"))
-    return keychain.get(**value)
+    auth_type = "header"
+    auth_require = True
+    auth_parse = False
 
+    class HeaderAuth(requests.auth.AuthBase):
+        """Authentication plugin for requests.."""
 
-class AuthProvider(metaclass=abc.ABCMeta):
-    """Auth provider interface."""
+        def __init__(self, *, name: str, value: str):
+            self._name = name
+            self._value = value
 
-    @property
-    @abc.abstractmethod
-    def name(self):
-        """Provider/implementation name."""
+            if not is_legal_header_name(self._name):
+                error_message = (
+                    f"HTTP header authentication provider received invalid "
+                    f"header name: {self._name!r}. Please remove illegal "
+                    f"characters and try again."
+                )
+                raise ValueError(error_message)
 
-    @abc.abstractmethod
-    def __call__(self, request):
-        """Attach authentication to a given request."""
+            if is_illegal_header_value(self._value):
+                error_message = (
+                    f"HTTP header authentication provider received invalid "
+                    f"header value: {self._value!r}. Please remove illegal "
+                    f"characters and try again."
+                )
+                raise ValueError(error_message)
 
+        def __call__(self, request: requests.PreparedRequest) -> requests.PreparedRequest:
+            request.headers[self._name] = self._value
+            return request
 
-class HTTPHeaderAuth(requests.auth.AuthBase, AuthProvider):
-    """Authentication via custom HTTP header."""
-
-    name = "header"
-
-    def __init__(self, *, name, value):
-        self._name = name
-        self._value = get_secret(value)
-
-        if not is_legal_header_name(self._name):
-            error_message = (
-                f"HTTP header authentication provider received invalid "
-                f"header name: {self._name!r}. Please remove illegal "
-                f"characters and try again."
-            )
-            raise ValueError(error_message)
-
-        if is_illegal_header_value(self._value):
-            error_message = (
-                f"HTTP header authentication provider received invalid "
-                f"header value: {self._value!r}. Please remove illegal "
-                f"characters and try again."
-            )
-            raise ValueError(error_message)
-
-    def __call__(self, request):
-        request.headers[self._name] = self._value
-        return request
+    def get_auth(
+        self,
+        username: t.Optional[str] = None,
+        password: t.Optional[str] = None,
+    ) -> requests.auth.AuthBase:
+        _ = username
+        _ = password
+        parsed = httpie.cli.argtypes.parse_auth(self.raw_auth)
+        return self.HeaderAuth(name=parsed.key, value=parsed.value)
 
 
-class HTTPTokenAuth(requests.auth.AuthBase, AuthProvider):
-    """Authentication via token."""
-
-    name = "token"
-
-    def __init__(self, *, token, scheme="Bearer"):
-        self._scheme = scheme
-        self._token = get_secret(token)
-
-        if is_illegal_header_value(self._scheme):
-            error_message = (
-                f"HTTP token authentication provider received scheme that "
-                f"contains illegal characters: {self._scheme!r}. Please "
-                f"remove these characters and try again."
-            )
-            raise ValueError(error_message)
-
-        if is_illegal_header_value(self._token):
-            error_message = (
-                f"HTTP token authentication provider received token that "
-                f"contains illegal characters: {self._token!r}. Please "
-                f"remove these characters and try again."
-            )
-            raise ValueError(error_message)
-
-    def __call__(self, request):
-        request.headers["Authorization"] = f"{self._scheme} {self._token}"
-        return request
-
-
-class HTTPMultipleAuth(requests.auth.AuthBase, AuthProvider):
+class CompositeAuth(requests.auth.AuthBase):
     """Authentication via multiple providers simultaneously."""
 
-    name = "multiple"
+    def __init__(self, instances: t.List[requests.auth.AuthBase]) -> None:
+        self._instances = instances
 
-    def __init__(self, *, providers):
-        self._providers = [get_auth(provider.pop("provider"), **provider) for provider in providers]
-
-    def __call__(self, request):
-        for provider in self._providers:
-            request = provider(request)
+    def __call__(self, request: requests.PreparedRequest) -> requests.PreparedRequest:
+        for auth in self._instances:
+            request = auth(request)
         return request
 
 
-_PROVIDERS = {provider_cls.name: provider_cls for provider_cls in AuthProvider.__subclasses__()}
+def get_auth(binding, secrets) -> requests.auth.AuthBase:
+    if not binding.get("auth_type") and isinstance(binding["auth"], list):
+        return CompositeAuth([get_auth(auth_entry, secrets) for auth_entry in binding["auth"]])
 
-
-def get_auth(provider, **kwargs):
     try:
-        plugin_cls = httpie.plugins.registry.plugin_manager.get_auth_plugin(provider)
+        plugin_cls = httpie.plugins.registry.plugin_manager.get_auth_plugin(binding["auth_type"])
     except KeyError:
         pass
     else:
         plugin = plugin_cls()
-        plugin.raw_auth = get_secret(kwargs.pop("auth", None))
-        kwargs = {k: get_secret(v) for k, v in kwargs.items()}
-        return plugin.get_auth(**kwargs)
 
-    return _PROVIDERS[provider](**kwargs)
+        auth = string.Template(binding["auth"]).substitute(secrets)
+        plugin.raw_auth = auth
+
+        if plugin.auth_parse:
+            parsed = httpie.cli.argtypes.parse_auth(auth)
+            credentials = {"username": parsed.key, "password": parsed.value}
+        else:
+            credentials = {"username": None, "password": None}
+
+        return plugin.get_auth(**credentials)

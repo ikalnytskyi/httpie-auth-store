@@ -71,21 +71,8 @@ def credentials_file(httpie_config_dir: pathlib.Path) -> pathlib.Path:
 def store_set(credentials_file: pathlib.Path) -> StoreSetT:
     """Render given credentials to credentials.json."""
 
-    def render(
-        *,
-        bindings: typing.List[typing.Mapping[str, typing.Any]],
-        secrets: typing.Mapping[str, typing.Any] = {},
-        mode: int = 0o600,
-    ) -> None:
-        credentials_file.write_text(
-            json.dumps(
-                {
-                    "bindings": bindings,
-                    "secrets": secrets,
-                },
-                indent=4,
-            )
-        )
+    def render(credentials: typing.Union[typing.Mapping, typing.List], mode: int = 0o600) -> None:
+        credentials_file.write_text(json.dumps(credentials, indent=4))
         credentials_file.chmod(mode)
 
     return render
@@ -111,45 +98,22 @@ def httpie_run(httpie_stderr: io.StringIO, httpie_config_dir: pathlib.Path) -> H
 
 
 @responses.activate
-def test_basic_auth_plugin(httpie_run: HttpieRunT) -> None:
-    """The plugin neither breaks nor overwrites existing auth plugins."""
-
-    httpie_run(["-A", "basic", "-a", "user:p@ss", "http://example.com"])
-
-    assert len(responses.calls) == 1
-    request = responses.calls[0].request
-
-    assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"
-
-
-@responses.activate
-def test_store_auth_deactivated_by_default(httpie_run: HttpieRunT) -> None:
-    """The plugin is deactivated by default."""
-
-    httpie_run(["http://example.com"])
-
-    assert len(responses.calls) == 1
-    request = responses.calls[0].request
-
-    assert request.url == "http://example.com/"
-    assert "Authorization" not in request.headers
-
-
-@responses.activate
 def test_store_auth_basic(httpie_run: HttpieRunT, store_set: StoreSetT) -> None:
     """The plugin works for HTTP basic auth."""
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "basic",
-                "auth": "user:p@ss",
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": "p@ss",
+                },
             }
         ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -170,21 +134,21 @@ def test_store_auth_basic_keychain(
     secrettxt.write_text("p@ss", encoding="UTF-8")
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "basic",
-                "auth": "user:$PASSWORD",
+                "auth": {
+                    "provider": "basic",
+                    "username": "user",
+                    "password": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt}",
+                    },
+                },
             }
-        ],
-        secrets={
-            "PASSWORD": {
-                "keychain": "shell",
-                "command": f"cat {secrettxt}",
-            }
-        },
+        ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -212,15 +176,18 @@ def test_store_auth_digest(httpie_run: HttpieRunT, store_set: StoreSetT) -> None
     )
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "digest",
-                "auth": "user:p@ss",
+                "auth": {
+                    "provider": "digest",
+                    "username": "user",
+                    "password": "p@ss",
+                },
             }
-        ],
+        ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 2
     request = responses.calls[0].request
@@ -276,21 +243,21 @@ def test_store_auth_digest_keychain(
     )
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "digest",
-                "auth": "user:$PASSWORD",
+                "auth": {
+                    "provider": "digest",
+                    "username": "user",
+                    "password": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt}",
+                    },
+                },
             }
-        ],
-        secrets={
-            "PASSWORD": {
-                "keychain": "shell",
-                "command": f"cat {secrettxt}",
-            }
-        },
+        ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 2
     request = responses.calls[0].request
@@ -321,19 +288,21 @@ def test_store_auth_digest_keychain(
 
 
 @responses.activate
-def test_store_auth_bearer(httpie_run: HttpieRunT, store_set: StoreSetT) -> None:
+def test_store_auth_token(httpie_run: HttpieRunT, store_set: StoreSetT) -> None:
     """The plugin works for HTTP token auth."""
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "bearer",
-                "auth": "token-can-be-anything",
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                },
             }
-        ],
+        ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -343,7 +312,32 @@ def test_store_auth_bearer(httpie_run: HttpieRunT, store_set: StoreSetT) -> None
 
 
 @responses.activate
-def test_store_auth_bearer_keychain(
+def test_store_auth_token_scheme(httpie_run: HttpieRunT, store_set: StoreSetT) -> None:
+    """The plugin works for HTTP token auth with custom scheme."""
+
+    store_set(
+        [
+            {
+                "url": "http://example.com",
+                "auth": {
+                    "provider": "token",
+                    "token": "token-can-be-anything",
+                    "scheme": "JWT",
+                },
+            }
+        ]
+    )
+    httpie_run(["-A", "creds", "http://example.com"])
+
+    assert len(responses.calls) == 1
+    request = responses.calls[0].request
+
+    assert request.url == "http://example.com/"
+    assert request.headers["Authorization"] == "JWT token-can-be-anything"
+
+
+@responses.activate
+def test_store_auth_token_keychain(
     httpie_run: HttpieRunT,
     store_set: StoreSetT,
     tmp_path: pathlib.Path,
@@ -354,21 +348,20 @@ def test_store_auth_bearer_keychain(
     secrettxt.write_text("token-can-be-anything", encoding="UTF-8")
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "bearer",
-                "auth": "$TOKEN",
+                "auth": {
+                    "provider": "token",
+                    "token": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt}",
+                    },
+                },
             }
-        ],
-        secrets={
-            "TOKEN": {
-                "keychain": "shell",
-                "command": f"cat {secrettxt}",
-            },
-        },
+        ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -382,21 +375,24 @@ def test_store_auth_header(httpie_run: HttpieRunT, store_set: StoreSetT) -> None
     """The plugin works for HTTP header auth."""
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "header",
-                "auth": "X-Auth:value-can-be:anything",
+                "auth": {
+                    "provider": "header",
+                    "name": "X-Auth",
+                    "value": "value-can-be-anything",
+                },
             }
         ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
-    assert request.headers["X-Auth"] == "value-can-be:anything"
+    assert request.headers["X-Auth"] == "value-can-be-anything"
 
 
 @responses.activate
@@ -408,30 +404,30 @@ def test_store_auth_header_keychain(
     """The plugin retrieves secrets from keychain for HTTP header auth."""
 
     secrettxt = tmp_path.joinpath("secret.txt")
-    secrettxt.write_text("value-can-be:anything", encoding="UTF-8")
+    secrettxt.write_text("value-can-be-anything", encoding="UTF-8")
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth_type": "header",
-                "auth": "X-Auth:$SECRET",
+                "auth": {
+                    "provider": "header",
+                    "name": "X-Auth",
+                    "value": {
+                        "keychain": "shell",
+                        "command": f"cat {secrettxt}",
+                    },
+                },
             }
-        ],
-        secrets={
-            "SECRET": {
-                "keychain": "shell",
-                "command": f"cat {secrettxt}",
-            },
-        },
+        ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
-    assert request.headers["X-Auth"] == "value-can-be:anything"
+    assert request.headers["X-Auth"] == "value-can-be-anything"
 
 
 @responses.activate
@@ -442,18 +438,20 @@ def test_store_auth_3rd_party_plugin(
     """The plugin works for third-party auth plugin."""
 
     store_set(
-        bindings=[
-            {
-                "url": "http://example.com",
-                "auth_type": "hmac",
-                "auth": "secret:rice",
-            }
-        ],
+        {
+            "bindings": [
+                {
+                    "url": "http://example.com",
+                    "auth_type": "hmac",
+                    "auth": "secret:rice",
+                }
+            ],
+        }
     )
 
     # The 'Date' request header is supplied to make sure that produced HMAC
     # is always the same.
-    httpie_run(["-A", "store", "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
+    httpie_run(["-A", "creds", "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -474,24 +472,26 @@ def test_store_auth_3rd_party_plugin_keychain(
     secrettxt.write_text("rice", encoding="UTF-8")
 
     store_set(
-        bindings=[
-            {
-                "url": "http://example.com",
-                "auth_type": "hmac",
-                "auth": "secret:$HMAC_SECRET",
-            }
-        ],
-        secrets={
-            "HMAC_SECRET": {
-                "keychain": "shell",
-                "command": f"cat {secrettxt}",
-            }
-        },
+        {
+            "bindings": [
+                {
+                    "url": "http://example.com",
+                    "auth_type": "hmac",
+                    "auth": "secret:$HMAC_SECRET",
+                }
+            ],
+            "secrets": {
+                "HMAC_SECRET": {
+                    "keychain": "shell",
+                    "command": f"cat {secrettxt}",
+                }
+            },
+        }
     )
 
     # The 'Date' request header is supplied to make sure that produced HMAC
     # is always the same.
-    httpie_run(["-A", "store", "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
+    httpie_run(["-A", "creds", "http://example.com", "Date: Wed, 08 May 2024 00:00:00 GMT"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -501,75 +501,85 @@ def test_store_auth_3rd_party_plugin_keychain(
 
 
 @responses.activate
-def test_store_auth_composite_bearer_header(
+def test_store_auth_multiple_token_header(
     httpie_run: HttpieRunT,
     store_set: StoreSetT,
 ) -> None:
     """The plugin works for multiple auths."""
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "auth_type": "bearer",
-                        "auth": "token-can-be-anything",
-                    },
-                    {
-                        "auth_type": "header",
-                        "auth": "X-Auth:secret-can-be-anything",
-                    },
-                ],
+                "auth": {
+                    "provider": "multiple",
+                    "providers": [
+                        {
+                            "provider": "token",
+                            "token": "token-can-be-anything",
+                            "scheme": "JWT",
+                        },
+                        {
+                            "provider": "header",
+                            "name": "X-Auth",
+                            "value": "value-can-be-anything",
+                        },
+                    ],
+                },
             }
         ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == "Bearer token-can-be-anything"
-    assert request.headers["X-Auth"] == "secret-can-be-anything"
+    assert request.headers["Authorization"] == "JWT token-can-be-anything"
+    assert request.headers["X-Auth"] == "value-can-be-anything"
 
 
 @responses.activate
-def test_store_auth_composite_header_header(
+def test_store_auth_multiple_header_header(
     httpie_run: HttpieRunT,
     store_set: StoreSetT,
 ) -> None:
     """The plugin supports usage of the same auth provider twice."""
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "auth_type": "header",
-                        "auth": "X-Secret:secret-can-be-anything",
-                    },
-                    {
-                        "auth_type": "header",
-                        "auth": "X-Auth:secret-can-be-anything",
-                    },
-                ],
+                "auth": {
+                    "provider": "multiple",
+                    "providers": [
+                        {
+                            "provider": "header",
+                            "name": "X-Secret",
+                            "value": "secret-can-be-anything",
+                        },
+                        {
+                            "provider": "header",
+                            "name": "X-Auth",
+                            "value": "auth-can-be-anything",
+                        },
+                    ],
+                },
             }
         ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
     assert request.headers["X-Secret"] == "secret-can-be-anything"
-    assert request.headers["X-Auth"] == "secret-can-be-anything"
+    assert request.headers["X-Auth"] == "auth-can-be-anything"
 
 
 @responses.activate
-def test_store_auth_composite_bearer_header_keychain(
+def test_store_auth_multiple_token_header_keychain(
     httpie_run: HttpieRunT,
     store_set: StoreSetT,
     tmp_path: pathlib.Path,
@@ -581,39 +591,40 @@ def test_store_auth_composite_bearer_header_keychain(
     secrettxt.write_text("secret-can-be-anything", encoding="UTF-8")
 
     store_set(
-        bindings=[
+        [
             {
                 "url": "http://example.com",
-                "auth": [
-                    {
-                        "auth_type": "bearer",
-                        "auth": "$TOKEN",
-                    },
-                    {
-                        "auth_type": "header",
-                        "auth": "X-Auth:$SECRET",
-                    },
-                ],
+                "auth": {
+                    "provider": "multiple",
+                    "providers": [
+                        {
+                            "provider": "token",
+                            "token": {
+                                "keychain": "shell",
+                                "command": f"cat {tokentxt}",
+                            },
+                            "scheme": "JWT",
+                        },
+                        {
+                            "provider": "header",
+                            "name": "X-Auth",
+                            "value": {
+                                "keychain": "shell",
+                                "command": f"cat {secrettxt}",
+                            },
+                        },
+                    ],
+                },
             }
-        ],
-        secrets={
-            "TOKEN": {
-                "keychain": "shell",
-                "command": f"cat {tokentxt}",
-            },
-            "SECRET": {
-                "keychain": "shell",
-                "command": f"cat {secrettxt}",
-            },
-        },
+        ]
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
 
     assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == "Bearer token-can-be-anything"
+    assert request.headers["Authorization"] == "JWT token-can-be-anything"
     assert request.headers["X-Auth"] == "secret-can-be-anything"
 
 
@@ -699,7 +710,7 @@ def test_store_auth_missing(
     """The plugin raises error on wrong parameters."""
 
     store_set([{"url": "http://example.com", "auth": auth}])
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     if _is_windows:
         # The error messages on Windows doesn't contain class names before
@@ -785,7 +796,7 @@ def test_store_lookup_regexp(
             }
         ]
     )
-    httpie_run(["-A", "store", url])
+    httpie_run(["-A", "creds", url])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -817,7 +828,7 @@ def test_store_lookup_1st_matched_wins(httpie_run: HttpieRunT, store_set: StoreS
             },
         ]
     )
-    httpie_run(["-A", "store", "https://yoda.ua/v2/the-force"])
+    httpie_run(["-A", "creds", "https://yoda.ua/v2/the-force"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -852,8 +863,8 @@ def test_store_lookup_many_credentials(httpie_run: HttpieRunT, store_set: StoreS
             },
         ]
     )
-    httpie_run(["-A", "store", "https://yoda.ua/about/"])
-    httpie_run(["-A", "store", "http://skywalker.com"])
+    httpie_run(["-A", "creds", "https://yoda.ua/about/"])
+    httpie_run(["-A", "creds", "http://skywalker.com"])
     assert len(responses.calls) == 2
 
     request = responses.calls[0].request
@@ -961,7 +972,7 @@ def test_store_lookup_by_id_error(
         ]
     )
 
-    httpie_run(["-A", "store", "-a", "vader", "https://yoda.ua/about/"])
+    httpie_run(["-A", "creds", "-a", "vader", "https://yoda.ua/about/"])
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
         "http: error: LookupError: No credentials found for a given URL: "
@@ -1000,7 +1011,7 @@ def test_store_permissions_safe(
         ],
         mode=mode,
     )
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 1
     request = responses.calls[0].request
@@ -1040,7 +1051,7 @@ def test_store_permissions_unsafe(
     """The plugin complains if credentials file has unsafe permissions."""
 
     store_set([{"url": "http://example.com", "auth": {}}], mode=mode)
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (
         f"http: error: PermissionError: Permissions '{mode:04o}' for "
@@ -1069,7 +1080,7 @@ def test_store_permissions_not_enough(
     """The plugin complains if credentials file has unsafe permissions."""
 
     store_set([{"url": "http://example.com", "auth": {}}], mode=mode)
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert httpie_stderr.getvalue().strip() == (
         f"http: error: PermissionError: Permissions '{mode:04o}' for "
@@ -1086,7 +1097,7 @@ def test_store_auth_no_database(
 ) -> None:
     """The plugin raises error if credentials file does not exist."""
 
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
@@ -1130,7 +1141,7 @@ def test_store_auth_header_value_illegal_characters(
     error: str,
 ) -> None:
     store_set([{"url": "http://example.com", "auth": auth}])
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == error
@@ -1164,37 +1175,7 @@ def test_store_auth_header_name_illegal_characters(
     error: str,
 ) -> None:
     store_set([{"url": "http://example.com", "auth": auth}])
-    httpie_run(["-A", "store", "http://example.com"])
+    httpie_run(["-A", "creds", "http://example.com"])
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == error
-
-
-@responses.activate
-@pytest.mark.parametrize("auth_type", ["store", "credential-store", "creds"])
-def test_auth_type_aliases(
-    httpie_run: HttpieRunT,
-    store_set: StoreSetT,
-    auth_type: str,
-) -> None:
-    """The plugin can be invoked via 'creds' alias."""
-
-    store_set(
-        [
-            {
-                "url": "http://example.com",
-                "auth": {
-                    "provider": "basic",
-                    "username": "user",
-                    "password": "p@ss",
-                },
-            }
-        ]
-    )
-    httpie_run(["-A", auth_type, "http://example.com"])
-
-    assert len(responses.calls) == 1
-    request = responses.calls[0].request
-
-    assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"
