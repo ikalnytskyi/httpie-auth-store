@@ -1,7 +1,7 @@
-Credential store plugin for HTTPie
-==================================
+Auth store plugin for HTTPie
+============================
 
-HTTPie Credential Store is an `HTTPie`_ authentication plugin that looks
+HTTPie Auth Store is an `HTTPie`_ authentication plugin that looks
 for credentials using a given URL and attaches them to the ongoing HTTP
 request. That said, you don't need to memorize and/or look for
 tokens/username/passwords anymore. Simply add them to the credential
@@ -13,7 +13,7 @@ Eager to get started? Just start with installing!
 
 .. code:: bash
 
-   $ python3 -m pip install httpie-credential-store
+   $ python3 -m pip install httpie-auth-store
 
 
 Usage
@@ -73,7 +73,7 @@ Example:
 The example above assumes you store your secrets unencrypted in the
 credential file. Despite enforcing you to set sole access permissions
 for the credential file, it's not secured and, hence, not recommended.
-HTTPie Credential Store plugin can pull secrets and other sensitive
+HTTPie Auth Store plugin can pull secrets and other sensitive
 information out from password managers or system keychains. For
 instance, you can pull your token from the `password store`_ by using
 the following credential record:
@@ -113,9 +113,8 @@ passing ``-a`` argument.
 Authentication providers
 ------------------------
 
-HTTPie Credential Store supports both built-in and third-party HTTPie
-authentication plugins as well as provides few authentication plugins
-on its own.
+HTTPie Auth Store supports both built-in and third-party HTTPie authentication
+plugins as well as provides few authentication plugins on its own.
 
 ``basic``
 .........

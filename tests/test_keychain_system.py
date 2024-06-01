@@ -7,7 +7,7 @@ import keyring.backend
 import keyring.compat
 import pytest
 
-from httpie_credential_store._keychain import SystemKeychain
+from httpie_auth_store._keychain import SystemKeychain
 
 
 class _InmemoryKeyring(keyring.backend.KeyringBackend):

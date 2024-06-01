@@ -6,7 +6,7 @@ import typing
 
 import pytest
 
-from httpie_credential_store._keychain import ShellKeychain
+from httpie_auth_store._keychain import ShellKeychain
 
 
 @pytest.fixture()

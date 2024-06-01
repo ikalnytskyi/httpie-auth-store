@@ -1,4 +1,4 @@
-"""httpie-credential-store test suite."""
+"""httpie-auth-store test suite."""
 
 import io
 import json
@@ -996,7 +996,7 @@ def test_store_lookup_error(
             }
         ]
     )
-    httpie_run(["-A", "credential-store", url])
+    httpie_run(["-A", "store", url])
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == (
@@ -1021,8 +1021,8 @@ def test_store_lookup_by_id(httpie_run: HttpieRunT, store_set: StoreSetT) -> Non
             },
         ]
     )
-    httpie_run(["-A", "credential-store", "https://yoda.ua/about/"])
-    httpie_run(["-A", "credential-store", "-a", "luke", "https://yoda.ua/about/"])
+    httpie_run(["-A", "store", "https://yoda.ua/about/"])
+    httpie_run(["-A", "store", "-a", "luke", "https://yoda.ua/about/"])
     assert len(responses.calls) == 2
 
     request = responses.calls[0].request
@@ -1264,33 +1264,3 @@ def test_store_auth_header_name_illegal_characters(
 
     assert len(responses.calls) == 0
     assert httpie_stderr.getvalue().strip() == error
-
-
-@responses.activate
-@pytest.mark.parametrize("auth_type", ["store", "credential-store", "creds"])
-def test_auth_type_aliases(
-    httpie_run: HttpieRunT,
-    store_set: StoreSetT,
-    auth_type: str,
-) -> None:
-    """The plugin can be invoked via 'creds' alias."""
-
-    store_set(
-        [
-            {
-                "url": "http://example.com",
-                "auth": {
-                    "provider": "basic",
-                    "username": "user",
-                    "password": "p@ss",
-                },
-            }
-        ]
-    )
-    httpie_run(["-A", auth_type, "http://example.com"])
-
-    assert len(responses.calls) == 1
-    request = responses.calls[0].request
-
-    assert request.url == "http://example.com/"
-    assert request.headers["Authorization"] == b"Basic dXNlcjpwQHNz"

@@ -11,7 +11,7 @@ import typing
 
 import pytest
 
-from httpie_credential_store._keychain import PasswordStoreKeychain
+from httpie_auth_store._keychain import PasswordStoreKeychain
 
 
 _is_macos = sys.platform == "darwin"
