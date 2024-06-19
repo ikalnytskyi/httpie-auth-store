@@ -1,7 +1,6 @@
 import collections.abc
 import dataclasses
 import json
-import os
 import pathlib
 import stat
 import string
@@ -101,24 +100,44 @@ class Secrets(collections.abc.Mapping):
 class AuthStore:
     """Authentication store."""
 
+    DEFAULT_AUTH_STORE: t.Mapping[str, t.Any] = {
+        "bindings": [
+            {
+                "auth_type": "basic",
+                "auth": "$PIE_USERNAME:$PIE_PASSWORD",
+                "resources": ["https://pie.dev/basic-auth/batman/I@mTheN1ght"],
+            },
+            {
+                "auth_type": "bearer",
+                "auth": "$PIE_TOKEN",
+                "resources": ["https://pie.dev/bearer"],
+            },
+        ],
+        "secrets": {
+            "PIE_USERNAME": "batman",
+            "PIE_PASSWORD": "I@mTheN1ght",
+            "PIE_TOKEN": "000000000000000000000000deadc0de",
+        },
+    }
+
     def __init__(self, bindings: t.List[Binding], secrets: Secrets):
         self._bindings = bindings
         self._secrets = secrets
 
     @classmethod
-    def from_filename(cls, filename: t.Union[str, pathlib.Path]) -> "AuthStore":
+    def from_filename(cls, filename: pathlib.Path) -> "AuthStore":
         """Construct an instance from given JSON file."""
 
-        if not os.path.exists(filename):
-            error_message = f"Authentication store is not found: '{filename}'."
-            raise FileNotFoundError(error_message)
+        if not filename.exists():
+            filename.write_text(json.dumps(cls.DEFAULT_AUTH_STORE, indent=2))
+            filename.chmod(0o600)
 
         # Since an authentication store may contain unencrypted secrets, I
         # decided to follow the same practice SSH does and do not work if the
         # file can be read by anyone but current user. Windows is ignored
         # because I haven't figured out yet how to deal with permissions there.
         if sys.platform != "win32":
-            mode = stat.S_IMODE(os.stat(filename).st_mode)
+            mode = stat.S_IMODE(filename.stat().st_mode)
 
             if mode & 0o077 > 0o000:
                 error_message = (
@@ -134,8 +153,7 @@ class AuthStore:
                 )
                 raise PermissionError(error_message)
 
-        with open(filename, encoding="UTF-8") as f:
-            return cls.from_mapping(json.load(f))
+        return cls.from_mapping(json.loads(filename.read_text(encoding="UTF-8")))
 
     @classmethod
     def from_mapping(cls, mapping: t.Mapping[str, t.Any]) -> "AuthStore":

@@ -59,8 +59,8 @@ configuration directory. On macOS and Linux, it tries the following locations:
 
 > [!NOTE]
 >
-> The authentication store is not created automatically; it is the user's
-> responsibility to create one.
+> The authentication store can be automatically created with few examples
+> inside on first plugin activation, e.g. `http -A store https://pie.dev`.
 
 The authentication store is a JSON file that contains two sections: `bindings`
 and `secrets`:

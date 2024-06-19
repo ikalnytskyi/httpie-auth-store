@@ -1,4 +1,4 @@
-import os
+import pathlib
 import typing as t
 
 import httpie.cli.argtypes
@@ -23,8 +23,8 @@ class StoreAuth(requests.auth.AuthBase):
         self._binding_id = binding_id
 
     def __call__(self, request: requests.PreparedRequest) -> requests.PreparedRequest:
-        auth_store_dir = httpie.config.DEFAULT_CONFIG_DIR
-        auth_store = AuthStore.from_filename(os.path.join(auth_store_dir, self.AUTH_STORE_FILENAME))
+        auth_store_dir = pathlib.Path(httpie.config.DEFAULT_CONFIG_DIR)
+        auth_store = AuthStore.from_filename(auth_store_dir / self.AUTH_STORE_FILENAME)
 
         # The credentials store plugin provides extended authentication
         # capabilities, and therefore requires registering extra HTTPie

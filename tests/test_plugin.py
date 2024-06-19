@@ -13,6 +13,7 @@ import pytest
 import responses
 
 from httpie_auth_store._auth import StoreAuth
+from httpie_auth_store._store import AuthStore
 
 
 _is_windows = sys.platform == "win32"
@@ -1217,16 +1218,22 @@ def test_store_permissions_not_enough(
 
 
 @responses.activate
-def test_store_auth_no_database(
+def test_store_autocreation_when_missing(
     httpie_run: HttpieRunT,
     auth_store_path: pathlib.Path,
-    httpie_stderr: io.StringIO,
 ) -> None:
-    """The plugin raises error if auth store does not exist."""
+    """The auth store is created when missing with some examples."""
 
-    httpie_run(["-A", "store", "https://yoda.ua"])
+    httpie_run(["-A", "store", "https://pie.dev/basic-auth/batman/I@mTheN1ght"])
+    httpie_run(["-A", "store", "https://pie.dev/bearer"])
 
-    assert len(responses.calls) == 0
-    assert httpie_stderr.getvalue().strip() == (
-        f"http: error: FileNotFoundError: Authentication store is not found: '{auth_store_path}'."
-    )
+    assert auth_store_path.exists()
+    assert json.loads(auth_store_path.read_text()) == AuthStore.DEFAULT_AUTH_STORE
+
+    request = responses.calls[0].request
+    assert request.url == "https://pie.dev/basic-auth/batman/I@mTheN1ght"
+    assert request.headers["Authorization"] == b"Basic YmF0bWFuOklAbVRoZU4xZ2h0"
+
+    request = responses.calls[1].request
+    assert request.url == "https://pie.dev/bearer"
+    assert request.headers["Authorization"] == "Bearer 000000000000000000000000deadc0de"
