@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "httpie-auth-store"
-version = "1.0.0"
+version = "4.0.0"
 description = "HTTPie: one auth to rule them all!"
 authors = ["Ihor Kalnytskyi <ihor@kalnytskyi.com>"]
 license = "MIT"
