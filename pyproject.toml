@@ -3,15 +3,15 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "httpie-credential-store"
-version = "3.1.0"
+name = "httpie-auth-store"
+version = "1.0.0"
 description = "HTTPie: one auth to rule them all!"
 authors = ["Ihor Kalnytskyi <ihor@kalnytskyi.com>"]
 license = "MIT"
-readme = "README.rst"
-homepage = "https://github.com/ikalnytskyi/httpie-credential-store"
-repository = "https://github.com/ikalnytskyi/httpie-credential-store"
-keywords = ["httpie", "credential", "store", "keychain", "plugin", "auth"]
+readme = "README.md"
+homepage = "https://github.com/ikalnytskyi/httpie-auth-store"
+repository = "https://github.com/ikalnytskyi/httpie-auth-store"
+keywords = ["httpie", "auth", "store", "keychain", "plugin", "credential"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -34,9 +34,7 @@ pytest-github-actions-annotate-failures = "*"
 httpie-hmac = "*"
 
 [tool.poetry.plugins."httpie.plugins.auth.v1"]
-store = "httpie_credential_store:StoreAuthPlugin"
-credential-store = "httpie_credential_store:CredentialStoreAuthPlugin"
-creds = "httpie_credential_store:CredsAuthPlugin"
+store = "httpie_auth_store:StoreAuthPlugin"
 
 [tool.ruff]
 line-length = 100
@@ -44,14 +42,14 @@ target-version = "py38"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D", "PTH", "PLR", "PT005", "ISC001", "INP001", "S603", "S607", "COM812", "FA100", "ANN101"]
+ignore = ["D", "PTH", "PLR", "PT005", "ISC001", "INP001", "S101", "S603", "S607", "COM812", "FA100", "ANN101"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/*" = ["ANN"]
-"src/httpie_credential_store/_keychain.py" = ["S602"]
-"tests/*" = ["S101", "INP001"]
+"src/httpie_auth_store/_secret.py" = ["S602"]
+"tests/*" = ["S101", "S106", "INP001"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["httpie_credential_store"]
+known-first-party = ["httpie_auth_store"]
 lines-after-imports = 2
 lines-between-types = 1

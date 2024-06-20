@@ -19,7 +19,9 @@ jobs:
           python-version: "3.12"
 
       - name: Run ruff
-        run: pipx run tox -e lint
+        run: |
+          python3 -m pip install tox
+          python3 -m tox -e lint
         env:
           RUFF_OUTPUT_FORMAT: github
 
@@ -53,4 +55,6 @@ jobs:
         if: matrix.os == 'macos-latest'
 
       - name: Run pytest
-        run: pipx run tox -e test
+        run: |
+          python3 -m pip install tox
+          python3 -m tox -e test
